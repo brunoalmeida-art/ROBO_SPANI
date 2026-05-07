@@ -1,6 +1,5 @@
 import requests
 import pandas as pd
-import time
 
 from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
@@ -28,86 +27,72 @@ headers = {
 }
 
 # =====================================
-# LISTA FINAL
+# PRODUTO TESTE
 # =====================================
 
-linhas = []
+produto_id = 803
 
 # =====================================
-# LOOP IDS
+# URL
 # =====================================
 
-for produto_id in range(800, 900):
+url = f"https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/36/loja/produtos/{produto_id}/detalhes"
 
-    try:
+# =====================================
+# REQUEST
+# =====================================
 
-        print(f"\nBUSCANDO PRODUTO {produto_id}")
+print("BUSCANDO PRODUTO...")
 
-        url = f"https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/36/loja/produtos/{produto_id}/detalhes"
+r = requests.get(
+    url,
+    headers=headers,
+    timeout=10
+)
 
-        r = requests.get(url, headers=headers)
+print(f"STATUS: {r.status_code}")
 
-        print(f"STATUS: {r.status_code}")
+dados = r.json()
 
-        if r.status_code != 200:
-            continue
+produto = dados["data"]["produto"]
 
-        dados = r.json()
+# =====================================
+# CAMPOS
+# =====================================
 
-        produto = dados["data"]["produto"]
+nome = produto.get("descricao", "")
 
-        # =====================================
-        # CAMPOS
-        # =====================================
+preco = produto.get("preco", "")
 
-        nome = produto.get("descricao", "")
+ean = produto.get("codigo_barras", "")
 
-        preco = produto.get("preco", "")
+oferta = "SIM" if produto.get("em_oferta") else ""
 
-        preco_antigo = produto.get("preco_original", "")
+setor = "MERCEARIA"
 
-        if preco_antigo == preco:
-            preco_antigo = ""
+# =====================================
+# LINK
+# =====================================
 
-        ean = produto.get("codigo_barras", "")
+link_slug = produto.get("link", "")
 
-        oferta = "SIM" if produto.get("em_oferta") else ""
+link_real = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
 
-        setor = "MERCEARIA"
+# =====================================
+# LINHAS
+# =====================================
 
-        # =====================================
-        # LINK
-        # =====================================
-
-        link_slug = produto.get("link", "")
-
-        link_real = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
-
-        # =====================================
-        # LINHA
-        # =====================================
-
-        linhas.append([
-            setor,
-            nome,
-            preco,
-            preco_antigo,
-            "",
-            "",
-            ean,
-            oferta,
-            "ABRIR",
-            link_real
-        ])
-
-        print(nome)
-
-        time.sleep(0.5)
-
-    except Exception as e:
-
-        print(f"ERRO PRODUTO {produto_id}")
-        print(e)
+linhas = [[
+    setor,
+    nome,
+    preco,
+    oferta,
+    "",
+    "",
+    ean,
+    "ABRIR",
+    link_real
+]]
 
 # =====================================
 # DATAFRAME
@@ -117,11 +102,10 @@ colunas = [
     "SETOR",
     "PRODUTO",
     "PREÇO VAREJO",
-    "PREÇO ANTIGO",
+    "OFERTA",
     "PREÇO ATACADO",
     "QTD ATACADO",
     "EAN",
-    "OFERTA",
     "LINK",
     "LINK_REAL"
 ]
@@ -172,9 +156,9 @@ for cell in ws[1]:
 
 for row in range(2, ws.max_row + 1):
 
-    link_cell = f"I{row}"
+    link_cell = f"H{row}"
 
-    url_cell = f"J{row}"
+    url_cell = f"I{row}"
 
     ws[link_cell].hyperlink = ws[url_cell].value
 
@@ -184,7 +168,7 @@ for row in range(2, ws.max_row + 1):
 # OCULTAR LINK REAL
 # =====================================
 
-ws.column_dimensions["J"].hidden = True
+ws.column_dimensions["I"].hidden = True
 
 # =====================================
 # FILTRO
@@ -222,4 +206,6 @@ wb.save(arquivo)
 
 print("\n======================")
 print("EXCEL GERADO")
-print(f"TOTAL PRODUTOS: {len(df)}")
+print(nome)
+print(preco)
+print(ean)
