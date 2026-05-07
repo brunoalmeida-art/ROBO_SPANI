@@ -1,38 +1,44 @@
 import requests
 
-url = "https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/36/loja/produtos/3560/detalhes"
+url = "https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/36/loja/produtos/832/detalhes"
 
 headers = {
 
-    "Accept": "application/json",
+    "accept": "application/json",
 
-    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "accept-encoding": "gzip, deflate, br, zstd",
 
-    "Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NzI3MTEyNDMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.5jbsro83AZ-4AG5jJsZKrbgeyocPa6n1vUQclalIR_HgF5FaxEFhJIcC0dggPwzdBzV0nFgPBJkk6ABFH6tDkQ",
+    "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
 
-    "Content-Type": "application/json",
+    "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NzI3MTEyNDMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.5jbsro83AZ-4AG5jJsZKrbgeyocPa6n1vUQclalIR_HgF5FaxEFhJIcC0dggPwzdBzV0nFgPBJkk6ABFH6tDkQ",
 
-    "Domainkey": "spanionline.com.br",
+    "content-type": "application/json",
 
-    "Organizationid": "67",
+    "domainkey": "spanionline.com.br",
 
-    "Origin": "https://www.spanionline.com.br",
+    "organizationid": "67",
 
-    "Referer": "https://www.spanionline.com.br/",
+    "origin": "https://www.spanionline.com.br",
 
-    "Sec-Ch-Ua": '"Google Chrome";v="147", "Not?A_Brand";v="8", "Chromium";v="147"',
+    "priority": "u=1, i",
 
-    "Sec-Ch-Ua-Mobile": "?0",
+    "referer": "https://www.spanionline.com.br/",
 
-    "Sec-Ch-Ua-Platform": '"Windows"',
+    "sec-ch-ua": '"Google Chrome";v="147", "Not.A/Brand";v="8", "Chromium";v="147"',
 
-    "Sec-Fetch-Dest": "empty",
+    "sec-ch-ua-mobile": "?0",
 
-    "Sec-Fetch-Mode": "cors",
+    "sec-ch-ua-platform": '"Windows"',
 
-    "Sec-Fetch-Site": "cross-site",
+    "sec-fetch-dest": "empty",
 
-    "User-Agent": "Mozilla/5.0"
+    "sec-fetch-mode": "cors",
+
+    "sec-fetch-site": "cross-site",
+
+    "sessao-id": "0108d3f7c99faa818e758d1c87e82cd3",
+
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
 
 }
 
