@@ -25,3 +25,9 @@ jobs:
 
       - name: Rodar robo
         run: python main.py
+
+      - name: Upload Excel
+        uses: actions/upload-artifact@v4
+        with:
+          name: SPANI
+          path: SPANI.xlsx
