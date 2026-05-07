@@ -26,7 +26,7 @@ headers = {
 # URL
 # =====================================
 
-url = "https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/6/loja/produtos/832/detalhes"
+url = "https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/36/loja/produtos/832/detalhes"
 
 # =====================================
 # REQUEST
