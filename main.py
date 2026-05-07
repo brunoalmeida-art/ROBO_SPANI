@@ -57,36 +57,26 @@ dados = r.json()
 produto = dados["data"]["produto"]
 
 # =====================================
+# MOSTRAR JSON COMPLETO
+# =====================================
+
+print("\n========================")
+print("JSON PRODUTO")
+print("========================\n")
+
+print(produto)
+
+# =====================================
 # CAMPOS
 # =====================================
 
 nome = produto.get("descricao", "")
 
-preco_atual = produto.get("preco", 0)
-
-preco_original = produto.get("preco_original", 0)
-
-# =====================================
-# OFERTA
-# =====================================
-
-if preco_original and preco_original > 0:
-
-    preco_varejo = preco_original
-    preco_oferta = preco_atual
-    oferta = "SIM"
-
-else:
-
-    preco_varejo = preco_atual
-    preco_oferta = ""
-    oferta = "NÃO"
-
-# =====================================
-# OUTROS
-# =====================================
+preco = produto.get("preco", "")
 
 ean = produto.get("codigo_barras", "")
+
+oferta = "SIM" if produto.get("em_oferta") else "NÃO"
 
 setor = "MERCEARIA"
 
@@ -105,8 +95,8 @@ link_real = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
 linhas = [[
     setor,
     nome,
-    preco_varejo,
-    preco_oferta,
+    preco,
+    "",
     "",
     "",
     ean,
@@ -228,7 +218,3 @@ wb.save(arquivo)
 
 print("\n======================")
 print("EXCEL GERADO")
-print(nome)
-print(preco_varejo)
-print(preco_oferta)
-print(oferta)
