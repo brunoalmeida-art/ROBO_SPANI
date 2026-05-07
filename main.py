@@ -1,46 +1,62 @@
-from playwright.sync_api import sync_playwright
+import requests
+import pandas as pd
 
-with sync_playwright() as p:
+# =====================================
+# HEADERS
+# =====================================
 
-    browser = p.chromium.launch(
-        headless=True,
-        args=[
-            "--disable-blink-features=AutomationControlled",
-            "--no-sandbox"
-        ]
-    )
+headers = {
 
-    context = browser.new_context()
+    "authorization": "COLE_O_TOKEN_AQUI",
 
-    page = context.new_page()
+    "sessao-id": "340848be2780fc6b67960200ffa5a3fb",
 
-    # =========================
-    # CAPTURA HEADERS
-    # =========================
+    "organizationid": "67",
 
-    def capturar(request):
+    "domainkey": "spanionline.com.br",
 
-        url = request.url
+    "accept": "application/json",
 
-        if "/produtos/832/detalhes" in url:
+    "content-type": "application/json",
 
-            print("\n====================")
-            print("API PRODUTO")
+    "user-agent": "Mozilla/5.0"
+}
 
-            headers = request.headers
+# =====================================
+# URL
+# =====================================
 
-            for k, v in headers.items():
+url = "https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/6/loja/produtos/832/detalhes"
 
-                print(f"{k}: {v}")
+# =====================================
+# REQUEST
+# =====================================
 
-    page.on("request", capturar)
+r = requests.get(url, headers=headers)
 
-    page.goto(
-        "https://www.spanionline.com.br/produto/832/leite-longa-vida-italac-1l-semidesnatado",
-        wait_until="networkidle",
-        timeout=120000
-    )
+print("STATUS:")
+print(r.status_code)
 
-    page.wait_for_timeout(15000)
+print("\nJSON:")
+print(r.text)
 
-    browser.close()
+# =====================================
+# EXCEL TESTE
+# =====================================
+
+linhas = [[
+    "TESTE",
+    r.status_code
+]]
+
+df = pd.DataFrame(
+    linhas,
+    columns=["INFO", "STATUS"]
+)
+
+df.to_excel(
+    "SPANI.xlsx",
+    index=False
+)
+
+print("\nEXCEL GERADO")
