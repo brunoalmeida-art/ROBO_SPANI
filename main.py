@@ -1,7 +1,5 @@
 from playwright.sync_api import sync_playwright
 
-print("ABRINDO SPANI...")
-
 with sync_playwright() as p:
 
     browser = p.chromium.launch(headless=True)
@@ -9,20 +7,38 @@ with sync_playwright() as p:
     page = browser.new_page()
 
     page.goto(
-        "https://www.spanionline.com.br/produto/832/leite-longa-vida-italac-1l-semidesnatado",
+        "https://www.spanionline.com.br/busca/skol",
         timeout=120000
     )
 
     print("PAGINA ABERTA")
 
-    titulo = page.title()
+    page.wait_for_timeout(5000)
 
-    print("TITULO:")
-    print(titulo)
+    produtos = page.locator("a")
 
-    preco = page.locator("text=R$").first.inner_text()
+    total = produtos.count()
 
-    print("PRECO:")
-    print(preco)
+    print(f"TOTAL LINKS: {total}")
+
+    for i in range(min(total, 30)):
+
+        try:
+
+            texto = produtos.nth(i).inner_text().strip()
+
+            href = produtos.nth(i).get_attribute("href")
+
+            if href and "/produto/" in href:
+
+                print("\n===================")
+                print("NOME:")
+                print(texto)
+
+                print("LINK:")
+                print(href)
+
+        except:
+            pass
 
     browser.close()
