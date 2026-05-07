@@ -12,61 +12,39 @@ with sync_playwright() as p:
 
     page = browser.new_page()
 
-    busca = "skol"
+    url = "https://www.spanionline.com.br/produto/832/leite-longa-vida-italac-1l-semidesnatado"
 
-    page.goto(
-        f"https://www.spanionline.com.br/busca/{busca}",
-        timeout=120000
-    )
+    page.goto(url, timeout=120000)
 
     print("PAGINA ABERTA")
 
-    page.wait_for_timeout(8000)
+    page.wait_for_timeout(5000)
 
     # =========================
-    # PEGA CARDS
+    # PRODUTO
     # =========================
 
-    cards = page.locator("a[href*='/produto/']")
+    nome = page.locator("h1").first.inner_text()
 
-    total = cards.count()
+    print(nome)
 
-    print(f"TOTAL PRODUTOS: {total}")
+    # =========================
+    # PREÇO
+    # =========================
 
-    links_usados = set()
+    preco = page.locator("text=R$").first.inner_text()
 
-    for i in range(total):
+    print(preco)
 
-        try:
-
-            href = cards.nth(i).get_attribute("href")
-
-            texto = cards.nth(i).inner_text().strip()
-
-            if href:
-
-                link = "https://www.spanionline.com.br" + href
-
-                if link not in links_usados:
-
-                    links_usados.add(link)
-
-                    print("\n================")
-                    print(texto)
-                    print(link)
-
-                    linhas.append([
-                        "BEBIDAS",
-                        texto,
-                        "",
-                        "",
-                        "",
-                        "",
-                        link
-                    ])
-
-        except:
-            pass
+    linhas.append([
+        "LATICINIOS",
+        nome,
+        preco,
+        "",
+        "",
+        "",
+        url
+    ])
 
     browser.close()
 
@@ -85,8 +63,6 @@ colunas = [
 ]
 
 df = pd.DataFrame(linhas, columns=colunas)
-
-df = df.drop_duplicates()
 
 arquivo = "SPANI.xlsx"
 
@@ -117,19 +93,17 @@ fonte_branca = Font(
     bold=True
 )
 
-# cabeçalho
 for cell in ws[1]:
 
     cell.fill = cor_azul
     cell.font = fonte_branca
 
-# autofilter
 ws.auto_filter.ref = ws.dimensions
 
-# largura automática
 for col in ws.columns:
 
     tamanho = 0
+
     letra = get_column_letter(col[0].column)
 
     for cell in col:
@@ -146,9 +120,4 @@ for col in ws.columns:
 
 wb.save(arquivo)
 
-print("\n================")
 print("ARQUIVO GERADO")
-print(arquivo)
-
-print("TOTAL PRODUTOS:")
-print(len(df))
