@@ -1,4 +1,7 @@
 from playwright.sync_api import sync_playwright
+import pandas as pd
+
+linhas = []
 
 with sync_playwright() as p:
 
@@ -6,8 +9,10 @@ with sync_playwright() as p:
 
     page = browser.new_page()
 
+    busca = "skol"
+
     page.goto(
-        "https://www.spanionline.com.br/busca/skol",
+        f"https://www.spanionline.com.br/busca/{busca}",
         timeout=120000
     )
 
@@ -21,7 +26,9 @@ with sync_playwright() as p:
 
     print(f"TOTAL LINKS: {total}")
 
-    for i in range(min(total, 30)):
+    links_usados = set()
+
+    for i in range(total):
 
         try:
 
@@ -31,14 +38,65 @@ with sync_playwright() as p:
 
             if href and "/produto/" in href:
 
-                print("\n===================")
-                print("NOME:")
-                print(texto)
+                link_completo = "https://www.spanionline.com.br" + href
 
-                print("LINK:")
-                print(href)
+                if link_completo not in links_usados:
+
+                    links_usados.add(link_completo)
+
+                    print("\n===================")
+                    print(texto)
+                    print(link_completo)
+
+                    linhas.append([
+                        "BEBIDAS",
+                        texto,
+                        "",
+                        "",
+                        "",
+                        "",
+                        link_completo
+                    ])
 
         except:
             pass
 
     browser.close()
+
+# =========================
+# DATAFRAME
+# =========================
+
+colunas = [
+    "SETOR",
+    "PRODUTO",
+    "PREÇO VAREJO",
+    "PREÇO ANTIGO",
+    "PREÇO ATACADO",
+    "QTD ATACADO",
+    "LINK"
+]
+
+df = pd.DataFrame(linhas, columns=colunas)
+
+# remove duplicados
+df = df.drop_duplicates()
+
+# =========================
+# EXPORTA EXCEL
+# =========================
+
+arquivo = "SPANI.xlsx"
+
+with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
+
+    df.to_excel(
+        writer,
+        index=False,
+        sheet_name="SPANI"
+    )
+
+print("\n===================")
+print("ARQUIVO GERADO")
+print(arquivo)
+print("TOTAL:", len(df))
