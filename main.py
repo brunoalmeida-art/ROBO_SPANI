@@ -30,7 +30,7 @@ headers = {
 # PRODUTO TESTE
 # =====================================
 
-produto_id = 803
+produto_id = 832
 
 # =====================================
 # URL
@@ -57,6 +57,16 @@ dados = r.json()
 produto = dados["data"]["produto"]
 
 # =====================================
+# JSON COMPLETO
+# =====================================
+
+print("\n========================")
+print("JSON PRODUTO")
+print("========================\n")
+
+print(produto)
+
+# =====================================
 # CAMPOS
 # =====================================
 
@@ -78,6 +88,10 @@ if produto.get("em_oferta"):
 
     oferta = "SIM"
 
+    preco_atacado = produto["oferta"].get("preco_oferta", "")
+
+    qtd_atacado = produto["oferta"].get("quantidade_minima", "")
+
 else:
 
     preco_varejo = produto.get("preco", "")
@@ -85,6 +99,10 @@ else:
     preco_oferta = ""
 
     oferta = "NÃO"
+
+    preco_atacado = ""
+
+    qtd_atacado = ""
 
 # =====================================
 # LINK
@@ -103,8 +121,8 @@ linhas = [[
     nome,
     preco_varejo,
     preco_oferta,
-    "",
-    "",
+    preco_atacado,
+    qtd_atacado,
     ean,
     oferta,
     "ABRIR",
@@ -130,6 +148,19 @@ colunas = [
 
 df = pd.DataFrame(linhas, columns=colunas)
 
+# =====================================
+# ORDENAR
+# =====================================
+
+df = df.sort_values(
+    by="PRODUTO",
+    ascending=True
+)
+
+# =====================================
+# EXCEL
+# =====================================
+
 arquivo = "SPANI.xlsx"
 
 with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
@@ -137,7 +168,7 @@ with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
     df.to_excel(
         writer,
         index=False,
-        sheet_name="SPANI"
+        sheet_name="MERCEARIA"
     )
 
 # =====================================
@@ -146,7 +177,7 @@ with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
 
 wb = load_workbook(arquivo)
 
-ws = wb["SPANI"]
+ws = wb["MERCEARIA"]
 
 # =====================================
 # HEADER
@@ -227,4 +258,5 @@ print("EXCEL GERADO")
 print(nome)
 print(preco_varejo)
 print(preco_oferta)
-print(oferta)
+print(preco_atacado)
+print(qtd_atacado)
