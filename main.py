@@ -12,7 +12,7 @@ from openpyxl.utils import get_column_letter
 
 headers = {
 
-    "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NzI3MTEyNDMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.5jbsro83AZ-4AG5jJsZKrbgeyocPa6n1vUQclalIR_HgF5FaxEFhJIcC0dggPwzdBzV0nFgPBJkk6ABFH6tDkQ",
+    "authorization": "Bearer SEU_TOKEN_AQUI",
 
     "sessao-id": "340848be2780fc6b67960200ffa5a3fb",
 
@@ -28,27 +28,16 @@ headers = {
 }
 
 # =====================================
-# IDS TESTE
-# =====================================
-
-produtos_ids = [
-    832,
-    823,
-    9587,
-    9584
-]
-
-# =====================================
 # LISTA FINAL
 # =====================================
 
 linhas = []
 
 # =====================================
-# LOOP
+# LOOP IDS
 # =====================================
 
-for produto_id in produtos_ids:
+for produto_id in range(800, 900):
 
     try:
 
@@ -77,17 +66,24 @@ for produto_id in produtos_ids:
 
         preco_antigo = produto.get("preco_original", "")
 
+        if preco_antigo == preco:
+            preco_antigo = ""
+
         ean = produto.get("codigo_barras", "")
 
         marca = produto.get("marca", "")
 
-        oferta = "SIM" if produto.get("em_oferta") else "NAO"
+        oferta = "SIM" if produto.get("em_oferta") else ""
 
         setor = "MERCEARIA"
 
+        # =====================================
+        # LINK
+        # =====================================
+
         link_slug = produto.get("link", "")
 
-        link = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
+        link_real = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
 
         # =====================================
         # LINHA
@@ -97,18 +93,19 @@ for produto_id in produtos_ids:
             setor,
             nome,
             preco,
-            preco_antigo if preco_antigo != preco else "",
+            preco_antigo,
             "",
             "",
             ean,
             marca,
             oferta,
-            link
+            "ABRIR",
+            link_real
         ])
 
         print(nome)
 
-        time.sleep(1)
+        time.sleep(0.5)
 
     except Exception as e:
 
@@ -129,7 +126,8 @@ colunas = [
     "EAN",
     "MARCA",
     "OFERTA",
-    "LINK"
+    "LINK",
+    "LINK_REAL"
 ]
 
 df = pd.DataFrame(linhas, columns=colunas)
@@ -145,14 +143,16 @@ with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
     )
 
 # =====================================
-# FORMATAÇÃO
+# OPENPYXL
 # =====================================
 
 wb = load_workbook(arquivo)
 
 ws = wb["SPANI"]
 
-# COR HEADER
+# =====================================
+# HEADER
+# =====================================
 
 cor_azul = PatternFill(
     start_color="1F4E78",
@@ -160,25 +160,45 @@ cor_azul = PatternFill(
     fill_type="solid"
 )
 
-# FONTE HEADER
-
 fonte_branca = Font(
     color="FFFFFF",
     bold=True
 )
-
-# HEADER
 
 for cell in ws[1]:
 
     cell.fill = cor_azul
     cell.font = fonte_branca
 
+# =====================================
+# HYPERLINK
+# =====================================
+
+for row in range(2, ws.max_row + 1):
+
+    link_cell = f"J{row}"
+
+    url_cell = f"K{row}"
+
+    ws[link_cell].hyperlink = ws[url_cell].value
+
+    ws[link_cell].style = "Hyperlink"
+
+# =====================================
+# OCULTAR LINK REAL
+# =====================================
+
+ws.column_dimensions["K"].hidden = True
+
+# =====================================
 # FILTRO
+# =====================================
 
 ws.auto_filter.ref = ws.dimensions
 
+# =====================================
 # AJUSTAR COLUNAS
+# =====================================
 
 for col in ws.columns:
 
@@ -198,7 +218,9 @@ for col in ws.columns:
 
     ws.column_dimensions[letra].width = tamanho + 5
 
+# =====================================
 # SALVAR
+# =====================================
 
 wb.save(arquivo)
 
