@@ -62,11 +62,25 @@ produto = dados["data"]["produto"]
 
 nome = produto.get("descricao", "")
 
-preco = produto.get("preco", "")
+preco_atual = produto.get("preco", "")
+
+preco_original = produto.get("preco_original", 0)
+
+em_oferta = produto.get("em_oferta", False)
+
+if em_oferta:
+
+    preco_varejo = preco_original
+    preco_oferta = preco_atual
+    oferta = "SIM"
+
+else:
+
+    preco_varejo = preco_atual
+    preco_oferta = ""
+    oferta = "NÃO"
 
 ean = produto.get("codigo_barras", "")
-
-oferta = "SIM" if produto.get("em_oferta") else ""
 
 setor = "MERCEARIA"
 
@@ -85,11 +99,12 @@ link_real = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
 linhas = [[
     setor,
     nome,
-    preco,
-    oferta,
+    preco_varejo,
+    preco_oferta,
     "",
     "",
     ean,
+    oferta,
     "ABRIR",
     link_real
 ]]
@@ -102,10 +117,11 @@ colunas = [
     "SETOR",
     "PRODUTO",
     "PREÇO VAREJO",
-    "OFERTA",
+    "PREÇO OFERTA",
     "PREÇO ATACADO",
     "QTD ATACADO",
     "EAN",
+    "OFERTA",
     "LINK",
     "LINK_REAL"
 ]
@@ -156,9 +172,9 @@ for cell in ws[1]:
 
 for row in range(2, ws.max_row + 1):
 
-    link_cell = f"H{row}"
+    link_cell = f"I{row}"
 
-    url_cell = f"I{row}"
+    url_cell = f"J{row}"
 
     ws[link_cell].hyperlink = ws[url_cell].value
 
@@ -168,7 +184,7 @@ for row in range(2, ws.max_row + 1):
 # OCULTAR LINK REAL
 # =====================================
 
-ws.column_dimensions["I"].hidden = True
+ws.column_dimensions["J"].hidden = True
 
 # =====================================
 # FILTRO
@@ -207,5 +223,6 @@ wb.save(arquivo)
 print("\n======================")
 print("EXCEL GERADO")
 print(nome)
-print(preco)
-print(ean)
+print(preco_varejo)
+print(preco_oferta)
+print(oferta)
