@@ -39,13 +39,13 @@ produtos_ids = [
 ]
 
 # =====================================
-# LINHAS
+# LISTA FINAL
 # =====================================
 
 linhas = []
 
 # =====================================
-# LOOP PRODUTOS
+# LOOP
 # =====================================
 
 for produto_id in produtos_ids:
@@ -67,6 +67,10 @@ for produto_id in produtos_ids:
 
         produto = dados["data"]["produto"]
 
+        # =====================================
+        # CAMPOS
+        # =====================================
+
         nome = produto.get("descricao", "")
 
         preco = produto.get("preco", "")
@@ -75,35 +79,30 @@ for produto_id in produtos_ids:
 
         ean = produto.get("codigo_barras", "")
 
-        marca = produto.get("marca_id", "")
+        marca = produto.get("marca", "")
 
-        estoque = produto.get("quantidade_maxima", "")
+        oferta = "SIM" if produto.get("em_oferta") else "NAO"
 
-        categoria = produto.get("categoria", "")
+        setor = "MERCEARIA"
 
-        promo = produto.get("em_oferta", "")
+        link_slug = produto.get("link", "")
 
-        imagem = ""
+        link = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
 
-        if produto.get("imagem"):
-
-            imagem = produto["imagem"]
-
-        slug = produto.get("link", "")
-
-        link = f"https://www.spanionline.com.br/produto/{produto_id}/{slug}"
+        # =====================================
+        # LINHA
+        # =====================================
 
         linhas.append([
-            categoria,
+            setor,
             nome,
             preco,
-            preco_antigo,
+            preco_antigo if preco_antigo != preco else "",
             "",
-            estoque,
+            "",
             ean,
             marca,
-            promo,
-            imagem,
+            oferta,
             link
         ])
 
@@ -130,7 +129,6 @@ colunas = [
     "EAN",
     "MARCA",
     "OFERTA",
-    "IMAGEM",
     "LINK"
 ]
 
@@ -154,23 +152,33 @@ wb = load_workbook(arquivo)
 
 ws = wb["SPANI"]
 
+# COR HEADER
+
 cor_azul = PatternFill(
     start_color="1F4E78",
     end_color="1F4E78",
     fill_type="solid"
 )
 
+# FONTE HEADER
+
 fonte_branca = Font(
     color="FFFFFF",
     bold=True
 )
+
+# HEADER
 
 for cell in ws[1]:
 
     cell.fill = cor_azul
     cell.font = fonte_branca
 
+# FILTRO
+
 ws.auto_filter.ref = ws.dimensions
+
+# AJUSTAR COLUNAS
 
 for col in ws.columns:
 
@@ -190,8 +198,10 @@ for col in ws.columns:
 
     ws.column_dimensions[letra].width = tamanho + 5
 
+# SALVAR
+
 wb.save(arquivo)
 
-print("\n====================")
+print("\n======================")
 print("EXCEL GERADO")
 print(f"TOTAL PRODUTOS: {len(df)}")
