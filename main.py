@@ -6,36 +6,34 @@ with sync_playwright() as p:
         headless=True,
         args=[
             "--disable-blink-features=AutomationControlled",
-            "--no-sandbox",
-            "--disable-dev-shm-usage"
+            "--no-sandbox"
         ]
     )
 
-    context = browser.new_context(
-        user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
-    )
+    context = browser.new_context()
 
     page = context.new_page()
 
     # =========================
-    # MONITORA REQUESTS
+    # CAPTURA HEADERS
     # =========================
 
-    def capturar(response):
+    def capturar(request):
 
-        url = response.url
+        url = request.url
 
-        if "api" in url.lower():
+        if "/produtos/832/detalhes" in url:
 
             print("\n====================")
-            print("API:")
-            print(url)
+            print("API PRODUTO")
 
-    page.on("response", capturar)
+            headers = request.headers
 
-    # =========================
-    # ABRE PRODUTO
-    # =========================
+            for k, v in headers.items():
+
+                print(f"{k}: {v}")
+
+    page.on("request", capturar)
 
     page.goto(
         "https://www.spanionline.com.br/produto/832/leite-longa-vida-italac-1l-semidesnatado",
