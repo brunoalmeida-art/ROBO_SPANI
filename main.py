@@ -1,5 +1,8 @@
 from playwright.sync_api import sync_playwright
 import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Font, PatternFill
+from openpyxl.utils import get_column_letter
 
 linhas = []
 
@@ -18,32 +21,49 @@ with sync_playwright() as p:
 
     print("PAGINA ABERTA")
 
-    page.wait_for_timeout(5000)
-
-    produtos = page.locator("a")
-
-    total = produtos.count()
-
-    print(f"TOTAL LINKS: {total}")
+    page.wait_for_timeout(8000)
 
     # =========================
-    # MOSTRA TODOS LINKS
+    # PEGA CARDS
     # =========================
+
+    cards = page.locator("a[href*='/produto/']")
+
+    total = cards.count()
+
+    print(f"TOTAL PRODUTOS: {total}")
+
+    links_usados = set()
 
     for i in range(total):
 
         try:
 
-            texto = produtos.nth(i).inner_text().strip()
+            href = cards.nth(i).get_attribute("href")
 
-            href = produtos.nth(i).get_attribute("href")
+            texto = cards.nth(i).inner_text().strip()
 
-            print("\n===================")
-            print("TEXTO:")
-            print(texto)
+            if href:
 
-            print("HREF:")
-            print(href)
+                link = "https://www.spanionline.com.br" + href
+
+                if link not in links_usados:
+
+                    links_usados.add(link)
+
+                    print("\n================")
+                    print(texto)
+                    print(link)
+
+                    linhas.append([
+                        "BEBIDAS",
+                        texto,
+                        "",
+                        "",
+                        "",
+                        "",
+                        link
+                    ])
 
         except:
             pass
@@ -66,6 +86,8 @@ colunas = [
 
 df = pd.DataFrame(linhas, columns=colunas)
 
+df = df.drop_duplicates()
+
 arquivo = "SPANI.xlsx"
 
 with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
@@ -76,7 +98,57 @@ with pd.ExcelWriter(arquivo, engine="openpyxl") as writer:
         sheet_name="SPANI"
     )
 
-print("\n===================")
+# =========================
+# FORMATAÇÃO
+# =========================
+
+wb = load_workbook(arquivo)
+
+ws = wb["SPANI"]
+
+cor_azul = PatternFill(
+    start_color="1F4E78",
+    end_color="1F4E78",
+    fill_type="solid"
+)
+
+fonte_branca = Font(
+    color="FFFFFF",
+    bold=True
+)
+
+# cabeçalho
+for cell in ws[1]:
+
+    cell.fill = cor_azul
+    cell.font = fonte_branca
+
+# autofilter
+ws.auto_filter.ref = ws.dimensions
+
+# largura automática
+for col in ws.columns:
+
+    tamanho = 0
+    letra = get_column_letter(col[0].column)
+
+    for cell in col:
+
+        try:
+
+            if len(str(cell.value)) > tamanho:
+                tamanho = len(str(cell.value))
+
+        except:
+            pass
+
+    ws.column_dimensions[letra].width = tamanho + 5
+
+wb.save(arquivo)
+
+print("\n================")
 print("ARQUIVO GERADO")
 print(arquivo)
-print("TOTAL:", len(df))
+
+print("TOTAL PRODUTOS:")
+print(len(df))
