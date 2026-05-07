@@ -19,9 +19,7 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar bibliotecas
-        run: |
-          pip install -r requirements.txt
-          playwright install
+        run: pip install -r requirements.txt
 
       - name: Rodar robo
         run: python main.py
