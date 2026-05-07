@@ -42,7 +42,7 @@ print(r.status_code)
 
 dados = r.json()
 
-print("\nJSON OK")
+print(dados)
 
 # =====================================
 # CAMPOS
