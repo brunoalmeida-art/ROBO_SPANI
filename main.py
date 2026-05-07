@@ -62,13 +62,15 @@ produto = dados["data"]["produto"]
 
 nome = produto.get("descricao", "")
 
-preco_atual = produto.get("preco", "")
+preco_atual = produto.get("preco", 0)
 
 preco_original = produto.get("preco_original", 0)
 
-em_oferta = produto.get("em_oferta", False)
+# =====================================
+# OFERTA
+# =====================================
 
-if em_oferta:
+if preco_original and preco_original > 0:
 
     preco_varejo = preco_original
     preco_oferta = preco_atual
@@ -79,6 +81,10 @@ else:
     preco_varejo = preco_atual
     preco_oferta = ""
     oferta = "NÃO"
+
+# =====================================
+# OUTROS
+# =====================================
 
 ean = produto.get("codigo_barras", "")
 
