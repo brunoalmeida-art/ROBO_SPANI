@@ -1,36 +1,28 @@
-import cloudscraper
+from playwright.sync_api import sync_playwright
 
-scraper = cloudscraper.create_scraper()
+print("ABRINDO SPANI...")
 
-url = "https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/36/loja/produtos/832/detalhes"
+with sync_playwright() as p:
 
-headers = {
+    browser = p.chromium.launch(headless=True)
 
-    "accept": "application/json",
+    page = browser.new_page()
 
-    "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NzI3MTEyNDMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.5jbsro83AZ-4AG5jJsZKrbgeyocPa6n1vUQclalIR_HgF5FaxEFhJIcC0dggPwzdBzV0nFgPBJkk6ABFH6tDkQ",
+    page.goto(
+        "https://www.spanionline.com.br/produto/832/leite-longa-vida-italac-1l-semidesnatado",
+        timeout=120000
+    )
 
-    "organizationid": "67",
+    print("PAGINA ABERTA")
 
-    "domainkey": "spanionline.com.br",
+    titulo = page.title()
 
-    "sessao-id": "0108d3f7c99faa818e758d1c87e82cd3",
+    print("TITULO:")
+    print(titulo)
 
-    "origin": "https://www.spanionline.com.br",
+    preco = page.locator("text=R$").first.inner_text()
 
-    "referer": "https://www.spanionline.com.br/"
+    print("PRECO:")
+    print(preco)
 
-}
-
-print("TESTANDO API SPANI...")
-
-response = scraper.get(
-    url,
-    headers=headers
-)
-
-print("STATUS:")
-print(response.status_code)
-
-print("RESPOSTA:")
-print(response.text)
+    browser.close()
