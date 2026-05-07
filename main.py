@@ -26,7 +26,9 @@ with sync_playwright() as p:
 
     print(f"TOTAL LINKS: {total}")
 
-    links_usados = set()
+    # =========================
+    # MOSTRA TODOS LINKS
+    # =========================
 
     for i in range(total):
 
@@ -36,27 +38,12 @@ with sync_playwright() as p:
 
             href = produtos.nth(i).get_attribute("href")
 
-            if href and "/produto/" in href:
+            print("\n===================")
+            print("TEXTO:")
+            print(texto)
 
-                link_completo = "https://www.spanionline.com.br" + href
-
-                if link_completo not in links_usados:
-
-                    links_usados.add(link_completo)
-
-                    print("\n===================")
-                    print(texto)
-                    print(link_completo)
-
-                    linhas.append([
-                        "BEBIDAS",
-                        texto,
-                        "",
-                        "",
-                        "",
-                        "",
-                        link_completo
-                    ])
+            print("HREF:")
+            print(href)
 
         except:
             pass
@@ -78,13 +65,6 @@ colunas = [
 ]
 
 df = pd.DataFrame(linhas, columns=colunas)
-
-# remove duplicados
-df = df.drop_duplicates()
-
-# =========================
-# EXPORTA EXCEL
-# =========================
 
 arquivo = "SPANI.xlsx"
 
