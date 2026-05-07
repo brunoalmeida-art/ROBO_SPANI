@@ -12,9 +12,9 @@ from openpyxl.utils import get_column_letter
 
 headers = {
 
-    "authorization": "Bearer SEU_TOKEN_AQUI",
+    "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NzI3MTEyNDMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.5jbsro83AZ-4AG5jJsZKrbgeyocPa6n1vUQclalIR_HgF5FaxEFhJIcC0dggPwzdBzV0nFgPBJkk6ABFH6tDkQ",
 
-    "sessao-id": "340848be2780fc6b67960200ffa5a3fb",
+    "sessao-id": "0108d3f7c99faa818e758d1c87e82cd3",
 
     "organizationid": "67",
 
@@ -71,8 +71,6 @@ for produto_id in range(800, 900):
 
         ean = produto.get("codigo_barras", "")
 
-        marca = produto.get("marca", "")
-
         oferta = "SIM" if produto.get("em_oferta") else ""
 
         setor = "MERCEARIA"
@@ -97,7 +95,6 @@ for produto_id in range(800, 900):
             "",
             "",
             ean,
-            marca,
             oferta,
             "ABRIR",
             link_real
@@ -124,7 +121,6 @@ colunas = [
     "PREÇO ATACADO",
     "QTD ATACADO",
     "EAN",
-    "MARCA",
     "OFERTA",
     "LINK",
     "LINK_REAL"
@@ -176,9 +172,9 @@ for cell in ws[1]:
 
 for row in range(2, ws.max_row + 1):
 
-    link_cell = f"J{row}"
+    link_cell = f"I{row}"
 
-    url_cell = f"K{row}"
+    url_cell = f"J{row}"
 
     ws[link_cell].hyperlink = ws[url_cell].value
 
@@ -188,7 +184,7 @@ for row in range(2, ws.max_row + 1):
 # OCULTAR LINK REAL
 # =====================================
 
-ws.column_dimensions["K"].hidden = True
+ws.column_dimensions["J"].hidden = True
 
 # =====================================
 # FILTRO
