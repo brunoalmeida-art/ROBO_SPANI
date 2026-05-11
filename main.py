@@ -314,7 +314,18 @@ msg["From"] = EMAIL_USER
 
 msg["To"] = EMAIL_TO
 
-msg.set_content("Excel do Spani em anexo.")
+msg.set_content(""""
+
+Bom dia,
+
+Segue em anexo o preços atualizado do Site Spani Spani.
+
+Arquivo gerado automaticamente pelo robô.
+
+Att,
+Bruno
+
+"""")
 
 # =====================================
 # ANEXO
