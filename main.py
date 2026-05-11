@@ -1,5 +1,4 @@
 import requests
-import pandas as pd
 import json
 
 # =========================================
@@ -12,9 +11,24 @@ ORG_ID = 67
 
 SESSION = "dc9e71d5-6b54-4c28-9f5c-0a0ab5dc316e"
 
+# =========================================
+# HEADERS
+# =========================================
+
 headers = {
+
     "accept": "application/json",
-    "user-agent": "Mozilla/5.0"
+
+    "user-agent": "Mozilla/5.0",
+
+    "OrganizationId": "67",
+
+    "Application": "spanionline.com.br",
+
+    "DomainKey": "spanionline.com.br",
+
+    "session-id": SESSION
+
 }
 
 # =========================================
@@ -49,11 +63,11 @@ r = requests.get(
 
 print(f"STATUS: {r.status_code}")
 
-js = r.json()
+# =========================================
+# JSON
+# =========================================
 
-# =========================================
-# MOSTRAR JSON COMPLETO
-# =========================================
+js = r.json()
 
 print(
     json.dumps(
@@ -72,14 +86,14 @@ produtos = js.get("produtos", [])
 print(f"\nTOTAL PRODUTOS: {len(produtos)}")
 
 # =========================================
-# TESTE PRIMEIRO ITEM
+# PRIMEIRO PRODUTO
 # =========================================
 
 if produtos:
 
     primeiro = produtos[0]
 
-    print("\n\n======== PRIMEIRO PRODUTO ========\n")
+    print("\n======== PRIMEIRO PRODUTO ========\n")
 
     print(
         json.dumps(
@@ -89,7 +103,7 @@ if produtos:
         )
     )
 
-    print("\n\n======== CAMPOS ========\n")
+    print("\n======== CAMPOS ========\n")
 
     for chave in primeiro.keys():
 
