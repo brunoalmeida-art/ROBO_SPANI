@@ -314,7 +314,7 @@ msg["From"] = EMAIL_USER
 
 msg["To"] = EMAIL_TO
 
-msg.set_content(""""
+msg.set_content("""
 
 Bom dia,
 
@@ -325,7 +325,7 @@ Arquivo gerado automaticamente pelo robô.
 Att,
 Bruno
 
-"""")
+""")
 
 # =====================================
 # ANEXO
