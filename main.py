@@ -5,13 +5,18 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
+import smtplib
+import os
+
+from email.message import EmailMessage
+
 # =====================================
 # HEADERS
 # =====================================
 
 headers = {
 
-    "authorization": "Bearer SEU_TOKEN",
+    "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NzI3MTEyNDMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.5jbsro83AZ-4AG5jJsZKrbgeyocPa6n1vUQclalIR_HgF5FaxEFhJIcC0dggPwzdBzV0nFgPBJkk6ABFH6tDkQ",
 
     "sessao-id": "0108d3f7c99faa818e758d1c87e82cd3",
 
@@ -27,7 +32,7 @@ headers = {
 }
 
 # =====================================
-# BUSCAS
+# BUSCAS A-Z
 # =====================================
 
 buscas = list("abcdefghijklmnopqrstuvwxyz")
@@ -39,7 +44,7 @@ buscas = list("abcdefghijklmnopqrstuvwxyz")
 dados_finais = []
 
 # =====================================
-# LOOP
+# LOOP BUSCAS
 # =====================================
 
 for termo in buscas:
@@ -260,7 +265,7 @@ ws.column_dimensions["J"].hidden = True
 ws.auto_filter.ref = ws.dimensions
 
 # =====================================
-# AJUSTAR
+# AJUSTAR COLUNAS
 # =====================================
 
 for col in ws.columns:
@@ -290,3 +295,56 @@ wb.save(arquivo)
 print("\n===================")
 print("EXCEL GERADO")
 print(f"TOTAL: {len(df)}")
+
+# =====================================
+# EMAIL
+# =====================================
+
+EMAIL_USER = os.getenv("EMAIL_USER")
+
+EMAIL_PASS = os.getenv("EMAIL_PASS")
+
+EMAIL_TO = os.getenv("EMAIL_TO")
+
+msg = EmailMessage()
+
+msg["Subject"] = "ROBO SPANI"
+
+msg["From"] = EMAIL_USER
+
+msg["To"] = EMAIL_TO
+
+msg.set_content("Excel do Spani em anexo.")
+
+# =====================================
+# ANEXO
+# =====================================
+
+with open("SPANI.xlsx", "rb") as f:
+
+    file_data = f.read()
+
+    msg.add_attachment(
+        file_data,
+        maintype="application",
+        subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename="SPANI.xlsx"
+    )
+
+# =====================================
+# SMTP
+# =====================================
+
+with smtplib.SMTP_SSL(
+    "smtp.gmail.com",
+    465
+) as smtp:
+
+    smtp.login(
+        EMAIL_USER,
+        EMAIL_PASS
+    )
+
+    smtp.send_message(msg)
+
+print("EMAIL ENVIADO")
