@@ -2,6 +2,12 @@ import requests
 import json
 
 # =========================================
+# TOKEN
+# =========================================
+
+TOKEN = "COLE_AQUI_O_BEARER_COMPLETO"
+
+# =========================================
 # CONFIG
 # =========================================
 
@@ -19,15 +25,23 @@ headers = {
 
     "accept": "application/json",
 
-    "user-agent": "Mozilla/5.0",
+    "Authorization": f"Bearer {TOKEN}",
 
-    "OrganizationId": "67",
+    "Content-Type": "application/json",
 
     "Application": "spanionline.com.br",
 
     "DomainKey": "spanionline.com.br",
 
-    "session-id": SESSION
+    "OrganizationId": "67",
+
+    "session-id": SESSION,
+
+    "Origin": "https://www.spanionline.com.br",
+
+    "Referer": "https://www.spanionline.com.br/",
+
+    "User-Agent": "Mozilla/5.0"
 
 }
 
@@ -63,48 +77,4 @@ r = requests.get(
 
 print(f"STATUS: {r.status_code}")
 
-# =========================================
-# JSON
-# =========================================
-
-js = r.json()
-
-print(
-    json.dumps(
-        js,
-        indent=2,
-        ensure_ascii=False
-    )
-)
-
-# =========================================
-# PRODUTOS
-# =========================================
-
-produtos = js.get("produtos", [])
-
-print(f"\nTOTAL PRODUTOS: {len(produtos)}")
-
-# =========================================
-# PRIMEIRO PRODUTO
-# =========================================
-
-if produtos:
-
-    primeiro = produtos[0]
-
-    print("\n======== PRIMEIRO PRODUTO ========\n")
-
-    print(
-        json.dumps(
-            primeiro,
-            indent=2,
-            ensure_ascii=False
-        )
-    )
-
-    print("\n======== CAMPOS ========\n")
-
-    for chave in primeiro.keys():
-
-        print(chave)
+print(r.text)
