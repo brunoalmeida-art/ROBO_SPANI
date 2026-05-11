@@ -1,316 +1,276 @@
 import requests
 import pandas as pd
-
-from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill
-from openpyxl.utils import get_column_letter
-
+import time
 import smtplib
 import os
 
+from datetime import datetime
 from email.message import EmailMessage
 
-# =====================================
-# HEADERS
-# =====================================
+# =========================================
+# CONFIG
+# =========================================
+
+LOJA_ID = 1
+CD_ID = 36
+ORG_ID = 67
+
+SESSION = "dc9e71d5-6b54-4c28-9f5c-0a0ab5dc316e"
 
 headers = {
-
-    "authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3NzI3MTEyNDMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.5jbsro83AZ-4AG5jJsZKrbgeyocPa6n1vUQclalIR_HgF5FaxEFhJIcC0dggPwzdBzV0nFgPBJkk6ABFH6tDkQ",
-
-    "sessao-id": "0108d3f7c99faa818e758d1c87e82cd3",
-
-    "organizationid": "67",
-
-    "domainkey": "spanionline.com.br",
-
     "accept": "application/json",
-
-    "content-type": "application/json",
-
     "user-agent": "Mozilla/5.0"
 }
 
-# =====================================
-# BUSCAS A-Z
-# =====================================
+# =========================================
+# BUSCAS
+# =========================================
 
 buscas = list("abcdefghijklmnopqrstuvwxyz")
 
-# =====================================
-# LISTA FINAL
-# =====================================
+# =========================================
+# RESULTADOS
+# =========================================
 
-dados_finais = []
+dados = []
 
-# =====================================
+ja_existe = set()
+
+# =========================================
 # LOOP BUSCAS
-# =====================================
+# =========================================
 
 for termo in buscas:
 
     pagina = 1
+    continuar = True
 
-    while True:
+    while continuar:
 
-        print(f"\nBUSCA: {termo} | PAGINA: {pagina}")
+        print(f"BUSCA: {termo} | PAGINA: {pagina}")
 
-        url = f"https://services-beta.vipcommerce.com.br/api-admin/v1/org/67/filial/1/centro_distribuicao/36/loja/buscas/produtos/termo/{termo}?page={pagina}"
-
-        r = requests.get(
-            url,
-            headers=headers,
-            timeout=30
+        url = (
+            f"https://services-beta.vipcommerce.com.br/"
+            f"api-admin/v1/org/{ORG_ID}/"
+            f"filial/{LOJA_ID}/"
+            f"centro_distribuicao/{CD_ID}/"
+            f"loja/buscas/produtos/termo/{termo}"
+            f"?page={pagina}"
+            f"&&session={SESSION}"
         )
 
-        print(f"STATUS: {r.status_code}")
+        # =========================================
+        # REQUEST
+        # =========================================
+
+        try:
+
+            r = requests.get(
+                url,
+                headers=headers,
+                timeout=120
+            )
+
+        except Exception as e:
+
+            print(f"ERRO NA URL: {url}")
+            print(e)
+
+            break
+
+        # =========================================
+        # STATUS
+        # =========================================
 
         if r.status_code != 200:
+
+            print(f"STATUS ERROR: {r.status_code}")
+
             break
 
-        dados = r.json()
+        try:
 
-        produtos = dados.get("data", [])
+            js = r.json()
+
+        except:
+
+            print("ERRO JSON")
+
+            break
+
+        produtos = js.get("produtos", [])
+
+        # =========================================
+        # SEM PRODUTOS
+        # =========================================
 
         if not produtos:
+
+            continuar = False
             break
 
-        # =====================================
+        # =========================================
         # LOOP PRODUTOS
-        # =====================================
+        # =========================================
 
-        for produto in produtos:
+        for prod in produtos:
 
             try:
 
-                nome = produto.get("descricao", "")
+                ean = str(
+                    prod.get("codigo_barras", "")
+                )
 
-                ean = produto.get("codigo_barras", "")
+                if ean in ja_existe:
+                    continue
 
-                setor = "MERCEARIA"
+                ja_existe.add(ean)
 
-                # =====================================
-                # PREÇOS
-                # =====================================
+                nome = prod.get("descricao", "")
 
-                if produto.get("em_oferta"):
+                preco_varejo = (
+                    prod.get("preco", "")
+                )
 
-                    preco_varejo = produto["oferta"].get("preco_antigo", "")
+                em_oferta = (
+                    prod.get("em_oferta", False)
+                )
 
-                    preco_oferta = produto["oferta"].get("preco_oferta", "")
+                oferta = prod.get("oferta", {})
 
-                    oferta = "SIM"
+                preco_oferta = ""
 
-                    preco_atacado = produto["oferta"].get("preco_oferta", "")
+                preco_antigo = ""
 
-                    qtd_atacado = produto["oferta"].get("quantidade_minima", "")
+                qtd_oferta = ""
 
-                else:
+                # =========================================
+                # OFERTA
+                # =========================================
 
-                    preco_varejo = produto.get("preco", "")
+                if oferta:
 
-                    preco_oferta = ""
+                    preco_oferta = (
+                        oferta.get(
+                            "preco_oferta",
+                            ""
+                        )
+                    )
 
-                    oferta = "NÃO"
+                    preco_antigo = (
+                        oferta.get(
+                            "preco_antigo",
+                            ""
+                        )
+                    )
 
-                    preco_atacado = ""
+                    qtd_oferta = (
+                        oferta.get(
+                            "quantidade_minima",
+                            ""
+                        )
+                    )
 
-                    qtd_atacado = ""
-
-                # =====================================
+                # =========================================
                 # LINK
-                # =====================================
+                # =========================================
 
-                produto_id = produto.get("produto_id", "")
+                link = (
+                    "https://www.spani.com.br/"
+                    + prod.get("link", "")
+                )
 
-                link_slug = produto.get("link", "")
+                # =========================================
+                # LINHA
+                # =========================================
 
-                link_real = f"https://www.spanionline.com.br/produto/{produto_id}/{link_slug}"
+                dados.append({
 
-                # =====================================
-                # APPEND
-                # =====================================
+                    "PRODUTO": nome,
 
-                dados_finais.append([
+                    "PREÇO VAREJO": preco_varejo,
 
-                    setor,
-                    nome,
-                    preco_varejo,
-                    preco_oferta,
-                    preco_atacado,
-                    qtd_atacado,
-                    ean,
-                    oferta,
-                    "ABRIR",
-                    link_real
+                    "PREÇO OFERTA": preco_oferta,
 
-                ])
+                    "PREÇO ANTIGO": preco_antigo,
 
-            except Exception as erro:
+                    "QTD OFERTA": qtd_oferta,
+
+                    "OFERTA": (
+                        "SIM"
+                        if em_oferta
+                        else "NÃO"
+                    ),
+
+                    "EAN": ean,
+
+                    "LINK": link
+
+                })
+
+            except Exception as erro_prod:
 
                 print("ERRO PRODUTO")
-                print(erro)
+                print(erro_prod)
 
         pagina += 1
 
-# =====================================
+        # =========================================
+        # PAUSA ANTI BLOQUEIO
+        # =========================================
+
+        time.sleep(0.5)
+
+# =========================================
 # DATAFRAME
-# =====================================
+# =========================================
 
-colunas = [
+df = pd.DataFrame(dados)
 
-    "SETOR",
-    "PRODUTO",
-    "PREÇO VAREJO",
-    "PREÇO OFERTA",
-    "PREÇO ATACADO",
-    "QTD ATACADO",
-    "EAN",
-    "OFERTA",
-    "LINK",
-    "LINK_REAL"
-]
-
-df = pd.DataFrame(
-    dados_finais,
-    columns=colunas
-)
-
-# =====================================
-# REMOVER DUPLICADOS
-# =====================================
-
-df = df.drop_duplicates(
-    subset=["EAN"]
-)
-
-# =====================================
+# =========================================
 # ORDENAR
-# =====================================
+# =========================================
 
 df = df.sort_values(
     by="PRODUTO"
 )
 
-# =====================================
-# EXCEL
-# =====================================
+# =========================================
+# NOME ARQUIVO
+# =========================================
 
-arquivo = "SPANI.xlsx"
+agora = datetime.now().strftime(
+    "%Y-%m-%d_%H-%M"
+)
 
-with pd.ExcelWriter(
+arquivo = f"SPANI_{agora}.xlsx"
+
+# =========================================
+# EXPORTAR
+# =========================================
+
+df.to_excel(
     arquivo,
-    engine="openpyxl"
-) as writer:
-
-    df.to_excel(
-        writer,
-        index=False,
-        sheet_name="SPANI"
-    )
-
-# =====================================
-# OPENPYXL
-# =====================================
-
-wb = load_workbook(arquivo)
-
-ws = wb["SPANI"]
-
-# =====================================
-# HEADER
-# =====================================
-
-cor_azul = PatternFill(
-    start_color="1F4E78",
-    end_color="1F4E78",
-    fill_type="solid"
+    index=False
 )
 
-fonte_branca = Font(
-    color="FFFFFF",
-    bold=True
-)
+print(f"ARQUIVO SALVO: {arquivo}")
 
-for cell in ws[1]:
-
-    cell.fill = cor_azul
-
-    cell.font = fonte_branca
-
-# =====================================
-# HYPERLINK
-# =====================================
-
-for row in range(2, ws.max_row + 1):
-
-    link_cell = f"I{row}"
-
-    url_cell = f"J{row}"
-
-    ws[link_cell].hyperlink = ws[url_cell].value
-
-    ws[link_cell].style = "Hyperlink"
-
-# =====================================
-# OCULTAR LINK REAL
-# =====================================
-
-ws.column_dimensions["J"].hidden = True
-
-# =====================================
-# FILTRO
-# =====================================
-
-ws.auto_filter.ref = ws.dimensions
-
-# =====================================
-# AJUSTAR COLUNAS
-# =====================================
-
-for col in ws.columns:
-
-    tamanho = 0
-
-    letra = get_column_letter(col[0].column)
-
-    for cell in col:
-
-        try:
-
-            if len(str(cell.value)) > tamanho:
-                tamanho = len(str(cell.value))
-
-        except:
-            pass
-
-    ws.column_dimensions[letra].width = tamanho + 5
-
-# =====================================
-# SALVAR
-# =====================================
-
-wb.save(arquivo)
-
-print("\n===================")
-print("EXCEL GERADO")
-print(f"TOTAL: {len(df)}")
-
-# =====================================
+# =========================================
 # EMAIL
-# =====================================
+# =========================================
 
-EMAIL_USER = os.getenv("EMAIL_USER")
-
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
+EMAIL_FROM = os.getenv("EMAIL_FROM")
 EMAIL_TO = os.getenv("EMAIL_TO")
+EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 
 msg = EmailMessage()
 
-msg["Subject"] = "ROBO SPANI"
+msg["Subject"] = (
+    "SPANI - Atualização Automática"
+)
 
-msg["From"] = EMAIL_USER
+msg["From"] = EMAIL_FROM
 
 msg["To"] = EMAIL_TO
 
@@ -318,7 +278,7 @@ msg.set_content("""
 
 Bom dia,
 
-Segue em anexo o preços atualizado do Site Spani Spani.
+Segue em anexo o preços atualizado do Site Spani.
 
 Arquivo gerado automaticamente pelo robô.
 
@@ -327,24 +287,26 @@ Bruno
 
 """)
 
-# =====================================
+# =========================================
 # ANEXO
-# =====================================
+# =========================================
 
-with open("SPANI.xlsx", "rb") as f:
-
-    file_data = f.read()
+with open(arquivo, "rb") as f:
 
     msg.add_attachment(
-        file_data,
+        f.read(),
         maintype="application",
-        subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename="SPANI.xlsx"
+        subtype=(
+            "vnd.openxmlformats-"
+            "officedocument."
+            "spreadsheetml.sheet"
+        ),
+        filename=arquivo
     )
 
-# =====================================
+# =========================================
 # SMTP
-# =====================================
+# =========================================
 
 with smtplib.SMTP_SSL(
     "smtp.gmail.com",
@@ -352,8 +314,8 @@ with smtplib.SMTP_SSL(
 ) as smtp:
 
     smtp.login(
-        EMAIL_USER,
-        EMAIL_PASS
+        EMAIL_FROM,
+        EMAIL_PASSWORD
     )
 
     smtp.send_message(msg)
