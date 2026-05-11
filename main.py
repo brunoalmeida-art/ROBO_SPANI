@@ -5,7 +5,7 @@ import json
 # TOKEN
 # =========================================
 
-TOKEN = "COLE_AQUI_O_BEARER_COMPLETO"
+TOKEN = "COLE_AQUI_APENAS_O_TOKEN_SEM_BEARER"
 
 # =========================================
 # CONFIG
@@ -75,6 +75,68 @@ r = requests.get(
     timeout=120
 )
 
+# =========================================
+# STATUS
+# =========================================
+
 print(f"STATUS: {r.status_code}")
 
+# =========================================
+# RESPOSTA BRUTA
+# =========================================
+
+print("\n======== RESPOSTA ========\n")
+
 print(r.text)
+
+# =========================================
+# JSON FORMATADO
+# =========================================
+
+try:
+
+    js = r.json()
+
+    print("\n======== JSON FORMATADO ========\n")
+
+    print(
+        json.dumps(
+            js,
+            indent=2,
+            ensure_ascii=False
+        )
+    )
+
+    produtos = js.get("produtos", [])
+
+    print(f"\nTOTAL PRODUTOS: {len(produtos)}")
+
+    # =====================================
+    # PRIMEIRO PRODUTO
+    # =====================================
+
+    if produtos:
+
+        primeiro = produtos[0]
+
+        print("\n======== PRIMEIRO PRODUTO ========\n")
+
+        print(
+            json.dumps(
+                primeiro,
+                indent=2,
+                ensure_ascii=False
+            )
+        )
+
+        print("\n======== CAMPOS ========\n")
+
+        for chave in primeiro.keys():
+
+            print(chave)
+
+except Exception as e:
+
+    print("\nERRO AO LER JSON\n")
+
+    print(e)
