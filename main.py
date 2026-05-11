@@ -23,10 +23,19 @@ headers = {
 }
 
 # =========================================
-# BUSCAS
+# BUSCAS OTIMIZADAS
 # =========================================
 
-buscas = list("abcdefghijklmnopqrstuvwxyz")
+buscas = [
+    "ar",
+    "fe",
+    "ma",
+    "ca",
+    "le",
+    "co",
+    "pa",
+    "bo"
+]
 
 # =========================================
 # RESULTADOS
@@ -43,6 +52,7 @@ ja_existe = set()
 for termo in buscas:
 
     pagina = 1
+
     continuar = True
 
     while continuar:
@@ -98,6 +108,24 @@ for termo in buscas:
 
             break
 
+        # =========================================
+        # TOTAL PRODUTOS
+        # =========================================
+
+        if pagina == 1:
+
+            try:
+
+                total = js.get("total", 0)
+
+                print(
+                    f"TOTAL ENCONTRADO EM {termo}: {total}"
+                )
+
+            except:
+
+                pass
+
         produtos = js.get("produtos", [])
 
         # =========================================
@@ -107,6 +135,7 @@ for termo in buscas:
         if not produtos:
 
             continuar = False
+
             break
 
         # =========================================
@@ -216,6 +245,18 @@ for termo in buscas:
         pagina += 1
 
         # =========================================
+        # LIMITE SEGURANÇA
+        # =========================================
+
+        if pagina > 300:
+
+            print(
+                f"LIMITE ATINGIDO: {termo}"
+            )
+
+            break
+
+        # =========================================
         # PAUSA ANTI BLOQUEIO
         # =========================================
 
@@ -255,6 +296,8 @@ df.to_excel(
 )
 
 print(f"ARQUIVO SALVO: {arquivo}")
+
+print(f"TOTAL FINAL: {len(df)}")
 
 # =========================================
 # EMAIL
