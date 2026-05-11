@@ -1,11 +1,6 @@
 import requests
 import pandas as pd
-import time
-import smtplib
-import os
-
-from datetime import datetime
-from email.message import EmailMessage
+import json
 
 # =========================================
 # CONFIG
@@ -23,344 +18,79 @@ headers = {
 }
 
 # =========================================
-# BUSCAS OTIMIZADAS
+# TESTE
 # =========================================
 
-buscas = [
-    "ar",
-    "fe",
-    "ma",
-    "ca",
-    "le",
-    "co",
-    "pa",
-    "bo"
-]
+termo = "ar"
+
+pagina = 1
+
+url = (
+    f"https://services-beta.vipcommerce.com.br/"
+    f"api-admin/v1/org/{ORG_ID}/"
+    f"filial/{LOJA_ID}/"
+    f"centro_distribuicao/{CD_ID}/"
+    f"loja/buscas/produtos/termo/{termo}"
+    f"?page={pagina}"
+    f"&&session={SESSION}"
+)
+
+print(url)
 
 # =========================================
-# RESULTADOS
+# REQUEST
 # =========================================
 
-dados = []
+r = requests.get(
+    url,
+    headers=headers,
+    timeout=120
+)
 
-ja_existe = set()
+print(f"STATUS: {r.status_code}")
+
+js = r.json()
 
 # =========================================
-# LOOP BUSCAS
+# MOSTRAR JSON COMPLETO
 # =========================================
 
-for termo in buscas:
+print(
+    json.dumps(
+        js,
+        indent=2,
+        ensure_ascii=False
+    )
+)
 
-    pagina = 1
+# =========================================
+# PRODUTOS
+# =========================================
 
-    continuar = True
+produtos = js.get("produtos", [])
 
-    while continuar:
+print(f"\nTOTAL PRODUTOS: {len(produtos)}")
 
-        print(f"BUSCA: {termo} | PAGINA: {pagina}")
+# =========================================
+# TESTE PRIMEIRO ITEM
+# =========================================
 
-        url = (
-            f"https://services-beta.vipcommerce.com.br/"
-            f"api-admin/v1/org/{ORG_ID}/"
-            f"filial/{LOJA_ID}/"
-            f"centro_distribuicao/{CD_ID}/"
-            f"loja/buscas/produtos/termo/{termo}"
-            f"?page={pagina}"
-            f"&&session={SESSION}"
+if produtos:
+
+    primeiro = produtos[0]
+
+    print("\n\n======== PRIMEIRO PRODUTO ========\n")
+
+    print(
+        json.dumps(
+            primeiro,
+            indent=2,
+            ensure_ascii=False
         )
-
-        # =========================================
-        # REQUEST
-        # =========================================
-
-        try:
-
-            r = requests.get(
-                url,
-                headers=headers,
-                timeout=120
-            )
-
-        except Exception as e:
-
-            print(f"ERRO NA URL: {url}")
-            print(e)
-
-            break
-
-        # =========================================
-        # STATUS
-        # =========================================
-
-        if r.status_code != 200:
-
-            print(f"STATUS ERROR: {r.status_code}")
-
-            break
-
-        try:
-
-            js = r.json()
-
-        except:
-
-            print("ERRO JSON")
-
-            break
-
-        # =========================================
-        # TOTAL PRODUTOS
-        # =========================================
-
-        if pagina == 1:
-
-            try:
-
-                total = js.get("total", 0)
-
-                print(
-                    f"TOTAL ENCONTRADO EM {termo}: {total}"
-                )
-
-            except:
-
-                pass
-
-        produtos = js.get("produtos", [])
-
-        # =========================================
-        # SEM PRODUTOS
-        # =========================================
-
-        if not produtos:
-
-            continuar = False
-
-            break
-
-        # =========================================
-        # LOOP PRODUTOS
-        # =========================================
-
-        for prod in produtos:
-
-            try:
-
-                ean = str(
-                    prod.get("codigo_barras", "")
-                )
-
-                if ean in ja_existe:
-                    continue
-
-                ja_existe.add(ean)
-
-                nome = prod.get("descricao", "")
-
-                preco_varejo = (
-                    prod.get("preco", "")
-                )
-
-                em_oferta = (
-                    prod.get("em_oferta", False)
-                )
-
-                oferta = prod.get("oferta", {})
-
-                preco_oferta = ""
-
-                preco_antigo = ""
-
-                qtd_oferta = ""
-
-                # =========================================
-                # OFERTA
-                # =========================================
-
-                if oferta:
-
-                    preco_oferta = (
-                        oferta.get(
-                            "preco_oferta",
-                            ""
-                        )
-                    )
-
-                    preco_antigo = (
-                        oferta.get(
-                            "preco_antigo",
-                            ""
-                        )
-                    )
-
-                    qtd_oferta = (
-                        oferta.get(
-                            "quantidade_minima",
-                            ""
-                        )
-                    )
-
-                # =========================================
-                # LINK
-                # =========================================
-
-                link = (
-                    "https://www.spani.com.br/"
-                    + prod.get("link", "")
-                )
-
-                # =========================================
-                # LINHA
-                # =========================================
-
-                dados.append({
-
-                    "PRODUTO": nome,
-
-                    "PREÇO VAREJO": preco_varejo,
-
-                    "PREÇO OFERTA": preco_oferta,
-
-                    "PREÇO ANTIGO": preco_antigo,
-
-                    "QTD OFERTA": qtd_oferta,
-
-                    "OFERTA": (
-                        "SIM"
-                        if em_oferta
-                        else "NÃO"
-                    ),
-
-                    "EAN": ean,
-
-                    "LINK": link
-
-                })
-
-            except Exception as erro_prod:
-
-                print("ERRO PRODUTO")
-                print(erro_prod)
-
-        pagina += 1
-
-        # =========================================
-        # LIMITE SEGURANÇA
-        # =========================================
-
-        if pagina > 300:
-
-            print(
-                f"LIMITE ATINGIDO: {termo}"
-            )
-
-            break
-
-        # =========================================
-        # PAUSA ANTI BLOQUEIO
-        # =========================================
-
-        time.sleep(0.5)
-
-# =========================================
-# DATAFRAME
-# =========================================
-
-df = pd.DataFrame(dados)
-
-# =========================================
-# ORDENAR
-# =========================================
-
-df = df.sort_values(
-    by="PRODUTO"
-)
-
-# =========================================
-# NOME ARQUIVO
-# =========================================
-
-agora = datetime.now().strftime(
-    "%Y-%m-%d_%H-%M"
-)
-
-arquivo = f"SPANI_{agora}.xlsx"
-
-# =========================================
-# EXPORTAR
-# =========================================
-
-df.to_excel(
-    arquivo,
-    index=False
-)
-
-print(f"ARQUIVO SALVO: {arquivo}")
-
-print(f"TOTAL FINAL: {len(df)}")
-
-# =========================================
-# EMAIL
-# =========================================
-
-EMAIL_FROM = os.getenv("EMAIL_FROM")
-EMAIL_TO = os.getenv("EMAIL_TO")
-EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
-
-msg = EmailMessage()
-
-msg["Subject"] = (
-    "SPANI - Atualização Automática"
-)
-
-msg["From"] = EMAIL_FROM
-
-msg["To"] = EMAIL_TO
-
-msg.set_content("""
-
-Bom dia,
-
-Segue em anexo o preços atualizado do Site Spani.
-
-Arquivo gerado automaticamente pelo robô.
-
-Att,
-Bruno
-
-""")
-
-# =========================================
-# ANEXO
-# =========================================
-
-with open(arquivo, "rb") as f:
-
-    msg.add_attachment(
-        f.read(),
-        maintype="application",
-        subtype=(
-            "vnd.openxmlformats-"
-            "officedocument."
-            "spreadsheetml.sheet"
-        ),
-        filename=arquivo
     )
 
-# =========================================
-# SMTP
-# =========================================
+    print("\n\n======== CAMPOS ========\n")
 
-with smtplib.SMTP_SSL(
-    "smtp.gmail.com",
-    465
-) as smtp:
+    for chave in primeiro.keys():
 
-    smtp.login(
-        EMAIL_FROM,
-        EMAIL_PASSWORD
-    )
-
-    smtp.send_message(msg)
-
-print("EMAIL ENVIADO")
+        print(chave)
