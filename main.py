@@ -49,7 +49,7 @@ with sync_playwright() as p:
 
         print("SELECIONANDO MAUA 1")
 
-        # abre seletor loja
+        # abre seletor
         page.locator(
             ".vip-endereco-wrapper"
         ).click()
@@ -71,7 +71,7 @@ with sync_playwright() as p:
         )
 
     # =====================================
-    # ENDERECO FINAL
+    # ENDERECO
     # =====================================
 
     try:
@@ -100,9 +100,17 @@ with sync_playwright() as p:
 
         print(c["name"])
 
-        if c["name"] == "session-id":
+        # =================================
+        # SESSAO
+        # =================================
+
+        if c["name"] == "sessao-id":
 
             session_id = c["value"]
+
+        # =================================
+        # VIP TOKEN
+        # =================================
 
         if c["name"] == "vip-token":
 
@@ -128,12 +136,18 @@ headers = {
 
     "vip-token": vip_token,
 
+    "organizationid": "67",
+
+    "filialid": "1",
+
+    "centrodistribuicaoid": "36",
+
     "user-agent": "Mozilla/5.0"
 }
 
 cookies = {
 
-    "session-id": session_id
+    "sessao-id": session_id
 }
 
 # =========================================
@@ -160,7 +174,7 @@ while True:
 
         f"?page={pagina}"
 
-        f"&&session={session_id}"
+        f"&session={session_id}"
     )
 
     print(f"PAGINA {pagina}")
@@ -186,15 +200,31 @@ while True:
 
     data = r.json()
 
+    # =====================================
+    # DATA
+    # =====================================
+
     produtos = data.get("data", [])
 
     if len(produtos) == 0:
 
+        print("SEM MAIS PRODUTOS")
+
         break
+
+    print("PRODUTOS:", len(produtos))
+
+    # =====================================
+    # LOOP PRODUTOS
+    # =====================================
 
     for p in produtos:
 
         try:
+
+            # =================================
+            # DESCRICAO
+            # =================================
 
             produto = (
 
@@ -209,35 +239,27 @@ while True:
             # SETOR
             # =================================
 
-            setor = "SEM SETOR"
+            setor = str(
 
-            try:
-
-                setor = (
-
-                    str(
-
-                        p.get(
-                            "secao_id",
-                            "SEM SETOR"
-                        )
-
-                    )
-
-                    .strip()
-
-                    .upper()
+                p.get(
+                    "secao_id",
+                    "SEM SETOR"
                 )
 
-            except:
-
-                pass
+            ).upper()
 
             # =================================
-            # PRECO
+            # PRECO VAREJO
             # =================================
 
-            varejo = p.get("preco", "")
+            varejo = p.get(
+                "preco",
+                ""
+            )
+
+            # =================================
+            # ATACADO
+            # =================================
 
             atacado = ""
 
@@ -258,8 +280,15 @@ while True:
                 try:
 
                     if (
+
+                        preco_oferta
+
+                        and
+
                         float(preco_oferta)
-                        < float(varejo)
+                        <
+                        float(varejo)
+
                     ):
 
                         atacado = preco_oferta
@@ -274,13 +303,23 @@ while True:
             # LINK
             # =================================
 
-            slug = p.get("link", "")
+            slug = p.get(
+                "link",
+                ""
+            )
 
-            produto_id = p.get("produto_id", "")
+            produto_id = p.get(
+                "produto_id",
+                ""
+            )
 
             link = (
-                f"https://www.spanionline.com.br/produto/"
-                f"{produto_id}/{slug}"
+
+                "https://www.spanionline.com.br/produto/"
+
+                f"{produto_id}/"
+
+                f"{slug}"
             )
 
             # =================================
@@ -342,7 +381,9 @@ df.to_excel(
     index=False
 )
 
-wb = load_workbook(OUTPUT)
+wb = load_workbook(
+    OUTPUT
+)
 
 ws = wb.active
 
@@ -373,7 +414,7 @@ for cell in ws[1]:
     cell.font = font
 
 # =========================================
-# LINK
+# LINKS
 # =========================================
 
 for row in range(2, ws.max_row + 1):
