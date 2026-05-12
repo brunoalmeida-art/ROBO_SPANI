@@ -3,6 +3,7 @@ import pandas as pd
 import smtplib
 import os
 import json
+import sys
 
 from email.message import EmailMessage
 from openpyxl import load_workbook
@@ -10,12 +11,10 @@ from openpyxl.styles import Font, PatternFill
 from datetime import datetime
 
 # =========================
-# CONFIG
+# DATA
 # =========================
 
-CEP = "05302-040"
-
-HOJE = datetime.now().strftime("%d-%m-%Y_%H-%M")
+HOJE = datetime.now().strftime("%d-%m-%Y")
 
 ARQUIVO_FINAL = f"SPANI_FULL_{HOJE}.xlsx"
 
@@ -39,7 +38,7 @@ session = requests.Session()
 # TOKEN
 # =========================
 
-TOKEN = "SEU_TOKEN_AQUI"
+TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3Nzc5MDc4MTMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.mqyEyNRMBcY0rb4kWeNN0-xnEb8kus9i97w3IR6qjCCPdKEyBjUcZkF77_4KtKvHBI2cx25Fd8E9G4Q1cwsADw"
 
 # =========================
 # HEADERS
@@ -59,34 +58,6 @@ HEADERS = {
 
     "DomainKey": "spanionline.com.br"
 }
-
-# =========================
-# DEFINIR CEP
-# =========================
-
-try:
-
-    url_cep = (
-        "https://services-beta.vipcommerce.com.br/"
-        "api/v1/checkout/cliente/cep"
-    )
-
-    payload = {
-        "cep": CEP
-    }
-
-    r_cep = session.post(
-        url_cep,
-        json=payload,
-        headers=HEADERS,
-        timeout=60
-    )
-
-    print("STATUS CEP:", r_cep.status_code)
-
-except Exception as e:
-
-    print("ERRO CEP:", e)
 
 # =========================
 # URL BUSCA
@@ -119,7 +90,7 @@ except Exception as e:
 
     print("ERRO REQUEST:", e)
 
-    raise
+    sys.exit()
 
 # =========================
 # JSON
@@ -133,7 +104,7 @@ except Exception as e:
 
     print("ERRO JSON:", e)
 
-    raise
+    sys.exit()
 
 # =========================
 # DEBUG
@@ -148,6 +119,16 @@ print(json.dumps(js, indent=2, ensure_ascii=False)[:5000])
 produtos = js.get("data", {}).get("produtos", [])
 
 print("TOTAL PRODUTOS API:", len(produtos))
+
+# =========================
+# VALIDAR TOKEN
+# =========================
+
+if not produtos:
+
+    print("SEM DADOS - TOKEN POSSIVELMENTE EXPIRADO")
+
+    sys.exit()
 
 # =========================
 # PROCESSAMENTO
@@ -172,59 +153,17 @@ for i, p in enumerate(produtos):
         ean = p.get("codigo_barras")
 
         # =====================
-        # SETOR REAL
+        # SETOR
         # =====================
 
-        setor = "SEM SETOR"
+        codigo_setor = p.get(
+            "classificacao_mercadologica_id"
+        )
 
-        try:
-
-            if produto_id:
-
-                url_produto_api = (
-                    "https://services-beta.vipcommerce.com.br/"
-                    "api-admin/v1/org/67/"
-                    "filial/1/"
-                    "centro_distribuicao/36/"
-                    "produto/"
-                    f"{produto_id}"
-                )
-
-                r_prod = session.get(
-                    url_produto_api,
-                    headers=HEADERS,
-                    timeout=30
-                )
-
-                js_prod = r_prod.json()
-
-                data_prod = js_prod.get(
-                    "data",
-                    {}
-                )
-
-                setor = (
-                    data_prod.get("departamento")
-                    or data_prod.get("secao")
-                    or data_prod.get("categoria")
-                    or "SEM SETOR"
-                )
-
-                if isinstance(setor, dict):
-
-                    setor = (
-                        setor.get("descricao")
-                        or setor.get("nome")
-                        or setor.get("titulo")
-                        or "SEM SETOR"
-                    )
-
-        except Exception as e:
-
-            print("ERRO SETOR:", e)
+        setor = f"SETOR {codigo_setor}"
 
         # =====================
-        # LINK CORRETO
+        # LINK
         # =====================
 
         link_produto = p.get("link")
@@ -353,7 +292,7 @@ if df.empty:
 
     print("DATAFRAME VAZIO")
 
-    raise Exception("SEM DADOS")
+    sys.exit()
 
 # =========================
 # REMOVER DUPLICADOS
@@ -448,7 +387,7 @@ for row in range(2, ws.max_row + 1):
 
 colunas = {
 
-    "A": 25,
+    "A": 20,
 
     "B": 60,
 
@@ -506,8 +445,6 @@ def enviar_email(arquivo):
 Bom dia,
 
 Segue em anexo o relatório atualizado de preços coletados no site do Spani Atacadista.
-
-A coleta foi realizada utilizando o CEP {CEP}.
 
 Arquivo gerado automaticamente pelo robô de monitoramento de preços.
 
