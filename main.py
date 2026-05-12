@@ -209,56 +209,87 @@ with sync_playwright() as p:
             )
 
             # =================================
-            # PRODUTO
-            # =================================
+# PRODUTO
+# =================================
 
-            produto = ""
+produto = ""
 
-            try:
+try:
 
-                # tenta H1
-                h1 = page.locator("h1")
+    seletores_produto = [
 
-                if h1.count() > 0:
+        "h1",
 
-                    produto = (
-                        h1.first
-                        .inner_text()
-                        .strip()
-                        .upper()
-                    )
+        ".product-title",
 
-                # fallback title
-                if produto == "":
+        ".product-name",
 
-                    produto = (
-                        page.title()
-                        .upper()
-                        .replace(
-                            " | SPANI ATACADISTA",
-                            ""
-                        )
-                        .replace(
-                            "SUPERMERCADOS ONLINE – LOJA VIRTUAL",
-                            ""
-                        )
-                        .strip()
-                    )
+        ".titulo-produto",
 
-                # limpeza
-                produto = re.sub(
-                    r'\s+',
-                    ' ',
-                    produto
+        ".vip-product-title",
+
+        "div h1",
+
+    ]
+
+    for seletor in seletores_produto:
+
+        try:
+
+            elemento = page.locator(seletor)
+
+            if elemento.count() > 0:
+
+                texto_produto = (
+                    elemento.first
+                    .inner_text()
+                    .strip()
+                    .upper()
                 )
 
-            except Exception as e:
+                if (
+                    texto_produto != ""
+                    and "SUPERMERCADOS ONLINE" not in texto_produto
+                ):
 
-                print(
-                    "ERRO PRODUTO:",
-                    e
-                )
+                    produto = texto_produto
 
+                    break
+
+        except:
+
+            pass
+
+    # FALLBACK FINAL
+    if produto == "":
+
+        try:
+
+            produto = (
+                page.locator("body")
+                .inner_text()
+                .split("\n")[5]
+                .strip()
+                .upper()
+            )
+
+        except:
+
+            produto = "SEM DESCRICAO"
+
+    # LIMPEZA
+    produto = re.sub(
+        r'\s+',
+        ' ',
+        produto
+    )
+
+except Exception as e:
+
+    print(
+        "ERRO PRODUTO:",
+        e
+    )
             # =================================
             # SETOR
             # =================================
