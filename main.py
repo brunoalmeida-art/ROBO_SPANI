@@ -1,5 +1,20 @@
 import requests
 import json
+import pandas as pd
+import smtplib
+import os
+
+from email.message import EmailMessage
+
+# =========================================
+# EMAIL
+# =========================================
+
+EMAIL_USER = os.getenv("EMAIL_USER")
+
+EMAIL_PASS = os.getenv("EMAIL_PASS")
+
+EMAIL_TO = "pricing@roldao.com.br"
 
 # =========================================
 # URL
@@ -74,33 +89,73 @@ try:
         )
     )
 
-    produtos = js.get("produtos", [])
+    # =====================================
+    # PRODUTOS
+    # =====================================
+
+    produtos = js.get("data", {}).get("produtos", [])
 
     print(f"\nTOTAL PRODUTOS: {len(produtos)}")
 
     # =====================================
-    # PRIMEIRO PRODUTO
+    # EXCEL
     # =====================================
 
     if produtos:
 
-        primeiro = produtos[0]
+        df = pd.DataFrame(produtos)
 
-        print("\n======== PRIMEIRO PRODUTO ========\n")
+        arquivo = "SPANI.xlsx"
 
-        print(
-            json.dumps(
-                primeiro,
-                indent=2,
-                ensure_ascii=False
-            )
+        df.to_excel(
+            arquivo,
+            index=False
         )
 
-        print("\n======== CAMPOS ========\n")
+        print(f"\nEXCEL GERADO: {arquivo}")
 
-        for chave in primeiro.keys():
+        # =================================
+        # EMAIL
+        # =================================
 
-            print(chave)
+        msg = EmailMessage()
+
+        msg["Subject"] = "SPANI - Atualizacao de Produtos"
+
+        msg["From"] = EMAIL_USER
+
+        msg["To"] = EMAIL_TO
+
+        msg.set_content(
+            "Arquivo SPANI.xlsx em anexo."
+        )
+
+        with open(arquivo, "rb") as f:
+
+            msg.add_attachment(
+                f.read(),
+                maintype="application",
+                subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                filename=arquivo
+            )
+
+        with smtplib.SMTP_SSL(
+            "smtp.gmail.com",
+            465
+        ) as smtp:
+
+            smtp.login(
+                EMAIL_USER,
+                EMAIL_PASS
+            )
+
+            smtp.send_message(msg)
+
+        print("\nEMAIL ENVIADO COM SUCESSO")
+
+    else:
+
+        print("\nNENHUM PRODUTO ENCONTRADO")
 
 except Exception as e:
 
