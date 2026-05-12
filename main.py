@@ -1,60 +1,29 @@
-from playwright.sync_api import sync_playwright
+import requests
 import pandas as pd
-import smtplib
-import os
-import re
-
-from email.message import EmailMessage
+import time
+from playwright.sync_api import sync_playwright
 from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill, Alignment
-from datetime import datetime
+from openpyxl.styles import Font, PatternFill
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table, TableStyleInfo
 
 # =========================================
-# DATA
+# CONFIG
 # =========================================
 
-HOJE = datetime.now().strftime("%d-%m-%Y")
+BASE_API = "https://services-beta.vipcommerce.com.br"
 
-ARQUIVO = "SPANI.xlsx"
+LOJA_URL = "https://www.spanionline.com.br"
 
-# =========================================
-# EMAIL
-# =========================================
+BUSCA = "a"
 
-EMAIL_USER = os.getenv("EMAIL_USER")
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-DESTINATARIO = "pricing@roldao.com.br"
+OUTPUT = "SPANI.xlsx"
 
 # =========================================
-# DADOS
+# PEGAR SESSION E VIP TOKEN
 # =========================================
 
-dados = []
-
-# =========================================
-# FUNÇÃO PREÇO
-# =========================================
-
-def preco_numero(valor):
-
-    try:
-
-        return float(
-            valor
-            .replace("R$", "")
-            .replace(".", "")
-            .replace(",", ".")
-            .strip()
-        )
-
-    except:
-
-        return 0
-
-# =========================================
-# PLAYWRIGHT
-# =========================================
+print("ABRINDO SPANI...")
 
 with sync_playwright() as p:
 
@@ -62,391 +31,213 @@ with sync_playwright() as p:
         headless=True
     )
 
-    context = browser.new_context(
-        viewport={
-            "width": 1600,
-            "height": 900
-        }
-    )
+    context = browser.new_context()
 
     page = context.new_page()
 
-    # =====================================
-    # SITE
-    # =====================================
-
     page.goto(
-        "https://www.spanionline.com.br",
+        LOJA_URL,
         timeout=120000
     )
 
     page.wait_for_timeout(10000)
 
     # =====================================
-    # DEFINIR LOJA MAUA 1
+    # GARANTE LOJA MAUA 1
     # =====================================
 
     try:
 
-        print("DEFININDO LOJA MAUA 1")
+        endereco = page.locator(
+            ".vip-endereco-wrapper"
+        ).inner_text()
 
-        page.locator(
-            "text=Retirar no endereço"
-        ).click()
+        print("LOJA:", endereco)
 
-        page.wait_for_timeout(3000)
-
-        inputs = page.locator("input")
-
-        inputs.nth(1).fill("Mauá")
-
-        page.wait_for_timeout(4000)
-
-        page.locator(
-            "text=Spani Mauá 1"
-        ).click()
-
-        page.wait_for_timeout(8000)
-
-        print("LOJA DEFINIDA")
-
-    except Exception as e:
-
-        print(
-            "ERRO LOJA:",
-            e
-        )
+    except:
+        print("NAO ACHOU ENDERECO")
 
     # =====================================
-    # BUSCA
+    # COOKIES
     # =====================================
 
-    busca = page.locator("input").first
+    cookies = context.cookies()
 
-    busca.fill("a")
+    session_id = ""
+    vip_token = ""
 
-    page.keyboard.press("Enter")
+    for c in cookies:
 
-    page.wait_for_timeout(10000)
+        if c["name"] == "session-id":
+            session_id = c["value"]
 
-    # =====================================
-    # SCROLL
-    # =====================================
+        if c["name"] == "vip-token":
+            vip_token = c["value"]
 
-    for i in range(10):
+    browser.close()
 
-        page.mouse.wheel(0, 15000)
+print("SESSION:", session_id)
+print("VIP TOKEN:", vip_token)
 
-        print(f"SCROLL {i+1}")
+# =========================================
+# HEADERS
+# =========================================
 
-        page.wait_for_timeout(3000)
+headers = {
+    "accept": "application/json",
+    "origin": "https://www.spanionline.com.br",
+    "referer": "https://www.spanionline.com.br/",
+    "vip-token": vip_token,
+    "user-agent": "Mozilla/5.0"
+}
 
-    # =====================================
-    # LINKS
-    # =====================================
+cookies = {
+    "session-id": session_id
+}
 
-    produtos = page.locator("a")
+# =========================================
+# PAGINAS
+# =========================================
 
-    total = produtos.count()
+pagina = 1
 
-    print("TOTAL ELEMENTOS:", total)
+todos = []
 
-    links = []
+while True:
 
-    for i in range(total):
+    url = (
+        f"{BASE_API}"
+        f"/api-admin/v1/org/67"
+        f"/filial/1"
+        f"/centro_distribuicao/36"
+        f"/loja/buscas/produtos/termo/{BUSCA}"
+        f"?page={pagina}"
+        f"&&session={session_id}"
+    )
+
+    print(f"PAGINA {pagina}")
+
+    r = requests.get(
+        url,
+        headers=headers,
+        cookies=cookies,
+        timeout=120
+    )
+
+    print("STATUS:", r.status_code)
+
+    if r.status_code != 200:
+        break
+
+    data = r.json()
+
+    produtos = data.get("data", [])
+
+    if len(produtos) == 0:
+        break
+
+    for p in produtos:
 
         try:
 
-            href = produtos.nth(i).get_attribute(
-                "href"
+            produto = (
+                p.get("descricao", "")
+                .strip()
+                .upper()
             )
 
-            if href and "/produto/" in href:
-
-                if href.startswith("http"):
-
-                    link = href
-
-                else:
-
-                    link = (
-                        "https://www.spanionline.com.br"
-                        + href
-                    )
-
-                if link not in links:
-
-                    links.append(link)
-
-        except:
-
-            pass
-
-    print("TOTAL LINKS:", len(links))
-
-    # =====================================
-    # TESTE
-    # =====================================
-
-    links = links[:20]
-
-    # =====================================
-    # LOOP PRODUTOS
-    # =====================================
-
-    for i, link in enumerate(links):
-
-        try:
-
-            print(f"{i+1}/{len(links)}")
-
-            page.goto(
-                link,
-                timeout=120000
+            setor = (
+                p.get(
+                    "categoria",
+                    "SEM SETOR"
+                )
+                .strip()
+                .upper()
             )
 
-            # ESPERA H1 REAL
-            page.wait_for_selector(
-                "h1",
-                timeout=15000
-            )
-
-            page.wait_for_timeout(3000)
-
-            # =================================
-            # PRODUTO
-            # =================================
-
-            produto = ""
-
-            try:
-
-                produto = (
-                    page.locator("h1")
-                    .first
-                    .inner_text()
-                    .strip()
-                    .upper()
-                )
-
-                produto = re.sub(
-                    r'\s+',
-                    ' ',
-                    produto
-                )
-
-            except Exception as e:
-
-                print(
-                    "ERRO PRODUTO:",
-                    e
-                )
-
-            # =================================
-            # SETOR
-            # =================================
-
-            setor = ""
-
-            try:
-
-                breadcrumb = page.locator(
-                    ".vip-breadcrumb-label"
-                )
-
-                total_breadcrumb = (
-                    breadcrumb.count()
-                )
-
-                if total_breadcrumb >= 2:
-
-                    setor = (
-                        breadcrumb
-                        .nth(
-                            total_breadcrumb - 2
-                        )
-                        .inner_text()
-                        .strip()
-                        .upper()
-                    )
-
-            except Exception as e:
-
-                print(
-                    "ERRO SETOR:",
-                    e
-                )
-
-            # =================================
-            # PREÇOS
-            # =================================
-
-            varejo = ""
+            varejo = p.get("preco")
 
             atacado = ""
 
             qtd_atacado = ""
 
-            try:
+            oferta = p.get("oferta")
 
-                texto = (
-                    page.locator("body")
-                    .inner_text()
+            if oferta:
+
+                preco_oferta = oferta.get(
+                    "preco_oferta"
                 )
 
-                precos = re.findall(
-                    r'R\$\s?\d+,\d+',
-                    texto
+                quantidade_minima = oferta.get(
+                    "quantidade_minima"
                 )
 
-                precos = list(
-                    dict.fromkeys(precos)
-                )
+                # somente se atacado menor
+                if (
+                    preco_oferta
+                    and preco_oferta < varejo
+                ):
 
-                if len(precos) >= 1:
+                    atacado = preco_oferta
+                    qtd_atacado = quantidade_minima
 
-                    varejo = precos[0]
+            link = (
+                "https://www.spanionline.com.br"
+                + p.get("link", "")
+            )
 
-                if len(precos) >= 2:
-
-                    atacado = precos[1]
-
-            except Exception as e:
-
-                print(
-                    "ERRO PRECO:",
-                    e
-                )
-
-            # =================================
-            # QTD ATACADO
-            # =================================
-
-            try:
-
-                qtd_match = re.search(
-
-                    r'a partir da\s*(\d+)',
-
-                    texto,
-
-                    re.IGNORECASE
-                )
-
-                if qtd_match:
-
-                    qtd_atacado = (
-                        qtd_match.group(1)
-                    )
-
-            except Exception as e:
-
-                print(
-                    "ERRO QTD:",
-                    e
-                )
-
-            # =================================
-            # VALIDAR PREÇO
-            # =================================
-
-            try:
-
-                valor_varejo = preco_numero(
-                    varejo
-                )
-
-                valor_atacado = preco_numero(
-                    atacado
-                )
-
-                if valor_atacado >= valor_varejo:
-
-                    atacado = ""
-
-                    qtd_atacado = ""
-
-            except:
-
-                atacado = ""
-
-                qtd_atacado = ""
-
-            # =================================
-            # SALVAR
-            # =================================
-
-            dados.append({
-
+            todos.append({
                 "SETOR": setor,
-
                 "PRODUTO": produto,
-
                 "VAREJO": varejo,
-
                 "ATACADO": atacado,
-
                 "QTD ATACADO": qtd_atacado,
-
                 "LINK": link
             })
 
-            print(
-                "OK:",
-                produto
-            )
-
         except Exception as e:
 
-            print(
-                "ERRO:",
-                e
-            )
+            print("ERRO:", e)
 
-    browser.close()
+    pagina += 1
 
 # =========================================
 # DATAFRAME
 # =========================================
 
-df = pd.DataFrame(dados)
-
-df = df.drop_duplicates()
-
-# =========================================
-# ORDENAR
-# =========================================
+df = pd.DataFrame(todos)
 
 df = df.sort_values(
-    by=["SETOR", "PRODUTO"]
+    by="PRODUTO"
 )
+
+print(df.head())
 
 # =========================================
 # EXCEL
 # =========================================
 
 df.to_excel(
-    ARQUIVO,
+    OUTPUT,
     index=False
 )
 
-# =========================================
-# FORMATAR
-# =========================================
-
-wb = load_workbook(
-    ARQUIVO
-)
+wb = load_workbook(OUTPUT)
 
 ws = wb.active
 
+# =========================================
+# ESTILO CABECALHO
+# =========================================
+
 fill = PatternFill(
-    start_color="1F4E78",
-    end_color="1F4E78",
+    start_color="16365C",
+    end_color="16365C",
     fill_type="solid"
 )
 
-font_header = Font(
+font = Font(
     color="FFFFFF",
     bold=True
 )
@@ -454,117 +245,62 @@ font_header = Font(
 for cell in ws[1]:
 
     cell.fill = fill
-
-    cell.font = font_header
-
-    cell.alignment = Alignment(
-        horizontal="center"
-    )
+    cell.font = font
 
 # =========================================
-# LINKS
+# LINK ABRIR
 # =========================================
 
 for row in range(2, ws.max_row + 1):
 
-    url = ws[f"F{row}"].value
+    cell = ws[f"F{row}"]
 
-    ws[f"F{row}"] = "ABRIR"
+    url = cell.value
 
-    ws[f"F{row}"].hyperlink = url
+    cell.value = "ABRIR"
 
-    ws[f"F{row}"].font = Font(
-        color="0000FF",
-        underline="single"
-    )
+    cell.hyperlink = url
+
+    cell.style = "Hyperlink"
 
 # =========================================
 # LARGURA
 # =========================================
 
 larguras = {
-
-    "A": 35,
-    "B": 70,
-    "C": 12,
-    "D": 12,
-    "E": 15,
-    "F": 12
+    1: 35,
+    2: 70,
+    3: 12,
+    4: 12,
+    5: 15,
+    6: 12
 }
 
 for col, largura in larguras.items():
 
-    ws.column_dimensions[col].width = largura
+    ws.column_dimensions[
+        get_column_letter(col)
+    ].width = largura
 
 # =========================================
-# CONGELAR
+# TABELA
 # =========================================
 
-ws.freeze_panes = "A2"
+tab = Table(
+    displayName="TabelaSpani",
+    ref=f"A1:F{ws.max_row}"
+)
 
-wb.save(ARQUIVO)
+style = TableStyleInfo(
+    name="TableStyleMedium2",
+    showRowStripes=False,
+    showColumnStripes=False
+)
+
+tab.tableStyleInfo = style
+
+ws.add_table(tab)
+
+wb.save(OUTPUT)
 
 print("FINALIZADO")
-
-# =========================================
-# EMAIL
-# =========================================
-
-try:
-
-    if EMAIL_USER and EMAIL_PASS:
-
-        msg = EmailMessage()
-
-        msg["Subject"] = (
-            f"Relatório Spani {HOJE}"
-        )
-
-        msg["From"] = EMAIL_USER
-
-        msg["To"] = DESTINATARIO
-
-        msg.set_content(f"""
-
-Bom dia,
-
-Segue em anexo o relatório atualizado do Spani Mauá 1.
-
-TOTAL PRODUTOS: {len(df)}
-
-Att,
-Bruno
-
-Competitividade – Spani
-
-""")
-
-        with open(ARQUIVO, "rb") as f:
-
-            msg.add_attachment(
-                f.read(),
-                maintype="application",
-                subtype="octet-stream",
-                filename=ARQUIVO
-            )
-
-        with smtplib.SMTP_SSL(
-            "smtp.gmail.com",
-            465
-        ) as smtp:
-
-            smtp.login(
-                EMAIL_USER,
-                EMAIL_PASS
-            )
-
-            smtp.send_message(msg)
-
-        print("EMAIL ENVIADO")
-
-except Exception as e:
-
-    print(
-        "ERRO EMAIL:",
-        e
-    )
