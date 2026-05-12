@@ -34,6 +34,26 @@ DESTINATARIO = "pricing@roldao.com.br"
 dados = []
 
 # =========================================
+# FUNÇÃO PREÇO
+# =========================================
+
+def preco_numero(valor):
+
+    try:
+
+        return float(
+            valor
+            .replace("R$", "")
+            .replace(".", "")
+            .replace(",", ".")
+            .strip()
+        )
+
+    except:
+
+        return 0
+
+# =========================================
 # PLAYWRIGHT
 # =========================================
 
@@ -207,11 +227,18 @@ with sync_playwright() as p:
                         .upper()
                     )
 
+                # remove espaços duplicados
                 produto = re.sub(
                     r'\s+',
                     ' ',
                     produto
                 )
+
+                # remove texto errado
+                produto = produto.replace(
+                    "SUPERMERCADOS ONLINE – LOJA VIRTUAL",
+                    ""
+                ).strip()
 
             except Exception as e:
 
@@ -256,67 +283,46 @@ with sync_playwright() as p:
                 )
 
             # =================================
-            # PREÇO VAREJO
+            # PREÇOS
             # =================================
 
             varejo = ""
 
-            try:
-
-                varejo_elemento = page.locator(
-                    "text=/R\\$\\s?\\d+,\\d+/"
-                ).first
-
-                varejo = (
-                    varejo_elemento
-                    .inner_text()
-                    .strip()
-                    .replace("/un", "")
-                    .strip()
-                )
-
-            except Exception as e:
-
-                print(
-                    "ERRO VAREJO:",
-                    e
-                )
-
-            # =================================
-            # PREÇO ATACADO
-            # =================================
-
             atacado = ""
 
+            qtd_atacado = ""
+
             try:
 
-                valores = page.locator(
-                    "text=/R\\$\\s?\\d+,\\d+/"
+                precos = re.findall(
+
+                    r'R\$\s?\d+,\d+',
+
+                    texto
                 )
 
-                if valores.count() >= 2:
+                precos = list(
+                    dict.fromkeys(precos)
+                )
 
-                    atacado = (
-                        valores
-                        .nth(1)
-                        .inner_text()
-                        .strip()
-                        .replace("/un", "")
-                        .strip()
-                    )
+                if len(precos) >= 1:
+
+                    varejo = precos[0]
+
+                if len(precos) >= 2:
+
+                    atacado = precos[1]
 
             except Exception as e:
 
                 print(
-                    "ERRO ATACADO:",
+                    "ERRO PRECO:",
                     e
                 )
 
             # =================================
-            # QTD ATACADO
+            # QUANTIDADE
             # =================================
-
-            qtd_atacado = ""
 
             try:
 
@@ -341,6 +347,35 @@ with sync_playwright() as p:
                     "ERRO QTD:",
                     e
                 )
+
+            # =================================
+            # VALIDAR ATACADO
+            # =================================
+
+            try:
+
+                valor_varejo = preco_numero(
+                    varejo
+                )
+
+                valor_atacado = preco_numero(
+                    atacado
+                )
+
+                # se atacado não for menor
+                # limpa atacado e qtd
+
+                if valor_atacado >= valor_varejo:
+
+                    atacado = ""
+
+                    qtd_atacado = ""
+
+            except:
+
+                atacado = ""
+
+                qtd_atacado = ""
 
             # =================================
             # SALVAR
