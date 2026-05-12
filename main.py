@@ -19,13 +19,36 @@ LOJA_URL = "https://www.spanionline.com.br"
 
 BUSCA = "a"
 
-OUTPUT = "SPANI.xlsx"
+LIMITE_ITENS = 10
+
+OUTPUT = "SPANI_TESTE.xlsx"
 
 EMAIL_USER = os.getenv("EMAIL_USER")
 
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
 EMAIL_TO = os.getenv("EMAIL_TO")
+
+# =========================================
+# FUNCAO PRECO
+# =========================================
+
+def formatar_preco(valor):
+
+    if valor is None or valor == "":
+
+        return ""
+
+    try:
+
+        return (
+            f"{float(str(valor).replace(',', '.')):.2f}"
+            .replace(".", ",")
+        )
+
+    except:
+
+        return str(valor)
 
 # =========================================
 # PLAYWRIGHT
@@ -160,10 +183,6 @@ headers = {
     "user-agent": "Mozilla/5.0"
 }
 
-# =========================================
-# COOKIES REQUEST
-# =========================================
-
 cookies = {
 
     "sessao-id": session_id,
@@ -172,12 +191,14 @@ cookies = {
 }
 
 # =========================================
-# LOOP PAGINAS
+# BUSCA PRODUTOS
 # =========================================
 
 pagina = 1
 
 todos = []
+
+total_coletados = 0
 
 while True:
 
@@ -221,10 +242,6 @@ while True:
 
     data = r.json()
 
-    # =====================================
-    # PRODUTOS
-    # =====================================
-
     produtos = data.get(
         "data",
         {}
@@ -237,17 +254,35 @@ while True:
 
     if len(produtos) == 0:
 
-        print("SEM MAIS PRODUTOS")
-
         break
-
-    # =====================================
-    # LOOP PRODUTOS
-    # =====================================
 
     for p in produtos:
 
+        if total_coletados >= LIMITE_ITENS:
+
+            break
+
         try:
+
+            # =================================
+            # SETOR
+            # =================================
+
+            setor = (
+
+                p.get("secao_descricao", "")
+
+                or
+
+                p.get("secao_nome", "")
+
+                or
+
+                p.get("secao", "")
+
+            )
+
+            setor = str(setor).strip().upper()
 
             # =================================
             # PRODUTO
@@ -255,10 +290,7 @@ while True:
 
             produto = (
 
-                p.get(
-                    "descricao",
-                    ""
-                )
+                p.get("descricao", "")
 
                 .strip()
 
@@ -266,29 +298,29 @@ while True:
             )
 
             # =================================
-            # SETOR
+            # EAN
             # =================================
 
-            setor = str(
-
-                p.get(
-                    "secao_id",
-                    "SEM SETOR"
-                )
-
-            ).upper()
-
-            # =================================
-            # PRECO VAREJO
-            # =================================
-
-            varejo = p.get(
-                "preco",
+            ean = p.get(
+                "codigo_barras",
                 ""
             )
 
             # =================================
-            # PRECO ATACADO
+            # VAREJO
+            # =================================
+
+            varejo_valor = p.get(
+                "preco",
+                ""
+            )
+
+            varejo = formatar_preco(
+                varejo_valor
+            )
+
+            # =================================
+            # ATACADO
             # =================================
 
             atacado = ""
@@ -309,19 +341,19 @@ while True:
 
                 try:
 
-                    if (
+                    preco_varejo_float = float(
+                        str(varejo_valor).replace(",", ".")
+                    )
 
-                        preco_oferta
+                    preco_atacado_float = float(
+                        str(preco_oferta).replace(",", ".")
+                    )
 
-                        and
+                    if preco_atacado_float < preco_varejo_float:
 
-                        float(preco_oferta)
-                        <
-                        float(varejo)
-
-                    ):
-
-                        atacado = preco_oferta
+                        atacado = formatar_preco(
+                            preco_oferta
+                        )
 
                         qtd_atacado = quantidade_minima
 
@@ -368,8 +400,12 @@ while True:
 
                 "QTD ATACADO": qtd_atacado,
 
+                "EAN": ean,
+
                 "LINK": link
             })
+
+            total_coletados += 1
 
         except Exception as e:
 
@@ -377,6 +413,14 @@ while True:
                 "ERRO PRODUTO:",
                 e
             )
+
+    if total_coletados >= LIMITE_ITENS:
+
+        print(
+            f"LIMITE DE {LIMITE_ITENS} ITENS ATINGIDO"
+        )
+
+        break
 
     pagina += 1
 
@@ -387,7 +431,7 @@ while True:
 if len(todos) == 0:
 
     raise Exception(
-        "SEM DADOS API"
+        "SEM DADOS"
     )
 
 # =========================================
@@ -398,7 +442,7 @@ df = pd.DataFrame(todos)
 
 df = df.sort_values(
     by="PRODUTO"
-)
+).reset_index(drop=True)
 
 print(df.head())
 
@@ -444,12 +488,12 @@ for cell in ws[1]:
     cell.font = font
 
 # =========================================
-# LINKS
+# LINK
 # =========================================
 
 for row in range(2, ws.max_row + 1):
 
-    cell = ws[f"F{row}"]
+    cell = ws[f"G{row}"]
 
     url = cell.value
 
@@ -465,17 +509,13 @@ for row in range(2, ws.max_row + 1):
 
 larguras = {
 
-    1: 18,
-
-    2: 70,
-
+    1: 20,
+    2: 60,
     3: 12,
-
     4: 12,
-
     5: 15,
-
-    6: 12
+    6: 18,
+    7: 12
 }
 
 for col, largura in larguras.items():
@@ -492,7 +532,7 @@ tab = Table(
 
     displayName="TabelaSpani",
 
-    ref=f"A1:F{ws.max_row}"
+    ref=f"A1:G{ws.max_row}"
 )
 
 style = TableStyleInfo(
@@ -522,7 +562,7 @@ try:
 
     msg = EmailMessage()
 
-    msg["Subject"] = "SPANI - ROBÔ PREÇOS"
+    msg["Subject"] = "SPANI - TESTE 10 ITENS"
 
     msg["From"] = EMAIL_USER
 
@@ -530,7 +570,7 @@ try:
 
     msg.set_content(
 
-        "Arquivo SPANI em anexo."
+        "Segue arquivo teste com 10 itens."
     )
 
     with open(
