@@ -37,16 +37,34 @@ EMAIL_ALERTA = "bruno.almeida@roldao.com.br"
 session = requests.Session()
 
 # =========================
-# TOKEN
+# TOKEN COOKIE
 # =========================
 
-TOKEN = "SEU_TOKEN_AQUI"
+TOKEN = """
+COLE_AQUI_O_VALOR_DO_COOKIE_VIP_TOKEN
+""".strip()
 
 # =========================
-# SESSION ID
+# SESSAO
 # =========================
 
 SESSION_ID = "23e9a90c19b0c9a219a4d1d08636a242"
+
+# =========================
+# COOKIES
+# =========================
+
+session.cookies.set(
+    "vip-token",
+    TOKEN,
+    domain=".spanionline.com.br"
+)
+
+session.cookies.set(
+    "sessao-id",
+    SESSION_ID,
+    domain=".spanionline.com.br"
+)
 
 # =========================
 # HEADERS
@@ -67,8 +85,6 @@ HEADERS = {
         "Safari/537.36 "
         "Edg/148.0.0.0"
     ),
-
-    "Authorization": f"Bearer {TOKEN}",
 
     "OrganizationId": "67",
 
@@ -143,12 +159,12 @@ produtos = js.get("data", {}).get("produtos", [])
 print("TOTAL PRODUTOS API:", len(produtos))
 
 # =========================
-# TOKEN EXPIRADO
+# TOKEN / COOKIE INVALIDO
 # =========================
 
 if not produtos:
 
-    print("SEM DADOS - TOKEN POSSIVELMENTE EXPIRADO")
+    print("SEM DADOS - TOKEN OU COOKIE INVALIDO")
 
     try:
 
@@ -157,7 +173,7 @@ if not produtos:
             msg = EmailMessage()
 
             msg["Subject"] = (
-                "ROBO SPANI - TOKEN EXPIRADO"
+                "ROBO SPANI - TOKEN INVALIDO"
             )
 
             msg["From"] = EMAIL_USER
@@ -174,7 +190,7 @@ ERRO:
 
 {json.dumps(js, indent=2, ensure_ascii=False)}
 
-O token provavelmente expirou e precisa ser renovado.
+Token/Cookie inválido.
 
 Data:
 {HOJE}
@@ -196,13 +212,13 @@ Robô Spani
                 smtp.send_message(msg)
 
             print(
-                "EMAIL DE TOKEN EXPIRADO ENVIADO"
+                "EMAIL DE ALERTA ENVIADO"
             )
 
     except Exception as e:
 
         print(
-            "ERRO EMAIL TOKEN:",
+            "ERRO EMAIL:",
             e
         )
 
@@ -539,14 +555,14 @@ wb.save(
 print("🔥 FINALIZADO:", ARQUIVO_FINAL)
 
 # =========================
-# EMAIL RELATÓRIO
+# EMAIL
 # =========================
 
 def enviar_email(arquivo):
 
     if not EMAIL_USER or not EMAIL_PASS:
 
-        print("❌ EMAIL OU SENHA NÃO CONFIGURADOS")
+        print("❌ EMAIL NÃO CONFIGURADO")
 
         return
 
@@ -564,9 +580,7 @@ def enviar_email(arquivo):
 
 Bom dia,
 
-Segue em anexo o relatório atualizado de preços coletados no site do Spani Atacadista.
-
-Arquivo gerado automaticamente pelo robô de monitoramento de preços.
+Segue em anexo o relatório atualizado do Spani.
 
 TOTAL PRODUTOS VÁLIDOS: {len(df)}
 
@@ -599,18 +613,18 @@ Bruno
             smtp.send_message(msg)
 
             print(
-                "📧 EMAIL ENVIADO COM SUCESSO!"
+                "📧 EMAIL ENVIADO!"
             )
 
     except Exception as e:
 
         print(
-            "❌ ERRO AO ENVIAR EMAIL:",
+            "ERRO EMAIL:",
             e
         )
 
 # =========================
-# EXECUTAR EMAIL
+# EXECUTAR
 # =========================
 
 try:
