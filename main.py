@@ -1,13 +1,5 @@
 import requests
-import pandas as pd
 from playwright.sync_api import sync_playwright
-from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table, TableStyleInfo
-import smtplib
-from email.message import EmailMessage
-import os
 
 # =========================================
 # CONFIG
@@ -18,62 +10,6 @@ BASE_API = "https://services-beta.vipcommerce.com.br"
 LOJA_URL = "https://www.spanionline.com.br"
 
 BUSCA = "a"
-
-LIMITE_ITENS = 20
-
-OUTPUT = "SPANI_TESTE.xlsx"
-
-EMAIL_USER = os.getenv("EMAIL_USER")
-
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-EMAIL_TO = os.getenv("EMAIL_TO")
-
-# =========================================
-# SETORES
-# =========================================
-
-SETORES = {
-
-    129: "LIMPEZA",
-
-    194: "HIGIENE",
-
-    154: "BEBIDAS",
-
-    117: "HORTIFRUTI",
-
-    148: "MERCEARIA",
-
-    95: "CONGELADOS",
-
-    22: "BAZAR",
-
-    124: "UTILIDADES",
-
-    126: "UTILIDADES DOMESTICAS"
-}
-
-# =========================================
-# FUNCAO PRECO
-# =========================================
-
-def formatar_preco(valor):
-
-    if valor is None or valor == "":
-
-        return ""
-
-    try:
-
-        return (
-            f"{float(str(valor).replace(',', '.')):.2f}"
-            .replace(".", ",")
-        )
-
-    except:
-
-        return str(valor)
 
 # =========================================
 # PLAYWRIGHT
@@ -126,22 +62,6 @@ with sync_playwright() as p:
         )
 
     # =====================================
-    # ENDERECO
-    # =====================================
-
-    try:
-
-        endereco = page.locator(
-            ".vip-endereco-wrapper"
-        ).inner_text()
-
-        print("LOJA:", endereco)
-
-    except:
-
-        print("NAO ACHOU ENDERECO")
-
-    # =====================================
     # COOKIES
     # =====================================
 
@@ -152,8 +72,6 @@ with sync_playwright() as p:
     vip_token = ""
 
     for c in cookies_play:
-
-        print(c["name"])
 
         if c["name"] == "sessao-id":
 
@@ -216,14 +134,12 @@ cookies = {
 }
 
 # =========================================
-# BUSCA PRODUTOS
+# BUSCA
 # =========================================
 
 pagina = 1
 
-todos = []
-
-total_coletados = 0
+categorias = {}
 
 while True:
 
@@ -244,7 +160,7 @@ while True:
         f"&session={session_id}"
     )
 
-    print(f"PAGINA {pagina}")
+    print(f"\nPAGINA {pagina}")
 
     r = requests.get(
 
@@ -279,365 +195,59 @@ while True:
 
     if len(produtos) == 0:
 
+        print("FIM")
+
         break
 
     # =====================================
-    # LOOP PRODUTOS
+    # MAPEAR CATEGORIAS
     # =====================================
 
     for p in produtos:
 
-        if total_coletados >= LIMITE_ITENS:
-
-            break
-
-        try:
-
-            # =================================
-            # SETOR
-            # =================================
-
-            secao_id = p.get(
-                "secao_id",
-                0
-            )
-
-            setor = SETORES.get(
-
-                secao_id,
-
-                str(secao_id)
-            )
-
-            # =================================
-            # PRODUTO
-            # =================================
-
-            produto = (
-
-                p.get(
-                    "descricao",
-                    ""
-                )
-
-                .strip()
-
-                .upper()
-            )
-
-            # =================================
-            # EAN
-            # =================================
-
-            ean = p.get(
-                "codigo_barras",
-                ""
-            )
-
-            # =================================
-            # PRECO VAREJO
-            # =================================
-
-            varejo_valor = p.get(
-                "preco",
-                ""
-            )
-
-            varejo = formatar_preco(
-                varejo_valor
-            )
-
-            # =================================
-            # PRECO ATACADO
-            # =================================
-
-            atacado = ""
-
-            qtd_atacado = ""
-
-            oferta = p.get("oferta")
-
-            if oferta:
-
-                preco_oferta = oferta.get(
-                    "preco_oferta"
-                )
-
-                quantidade_minima = oferta.get(
-                    "quantidade_minima"
-                )
-
-                try:
-
-                    preco_varejo_float = float(
-                        str(varejo_valor).replace(",", ".")
-                    )
-
-                    preco_atacado_float = float(
-                        str(preco_oferta).replace(",", ".")
-                    )
-
-                    if preco_atacado_float < preco_varejo_float:
-
-                        atacado = formatar_preco(
-                            preco_oferta
-                        )
-
-                        qtd_atacado = quantidade_minima
-
-                except:
-
-                    pass
-
-            # =================================
-            # LINK
-            # =================================
-
-            slug = p.get(
-                "link",
-                ""
-            )
-
-            produto_id = p.get(
-                "produto_id",
-                ""
-            )
-
-            link = (
-
-                "https://www.spanionline.com.br/produto/"
-
-                f"{produto_id}/"
-
-                f"{slug}"
-            )
-
-            # =================================
-            # SALVAR
-            # =================================
-
-            todos.append({
-
-                "SETOR": setor,
-
-                "PRODUTO": produto,
-
-                "VAREJO": varejo,
-
-                "ATACADO": atacado,
-
-                "QTD ATACADO": qtd_atacado,
-
-                "EAN": ean,
-
-                "LINK": link
-            })
-
-            total_coletados += 1
-
-        except Exception as e:
-
-            print(
-                "ERRO PRODUTO:",
-                e
-            )
-
-    if total_coletados >= LIMITE_ITENS:
-
-        print(
-            f"LIMITE DE {LIMITE_ITENS} ITENS ATINGIDO"
+        secao_id = p.get(
+            "secao_id",
+            "SEM_ID"
         )
 
-        break
+        classificacao = p.get(
+            "classificacao_mercadologica_id",
+            "SEM_CLASSIFICACAO"
+        )
+
+        descricao = p.get(
+            "descricao",
+            ""
+        )
+
+        if secao_id not in categorias:
+
+            categorias[secao_id] = {
+
+                "classificacao": classificacao,
+
+                "produto_exemplo": descricao
+            }
 
     pagina += 1
 
 # =========================================
-# VALIDAR
+# RESULTADO
 # =========================================
 
-if len(todos) == 0:
-
-    raise Exception(
-        "SEM DADOS"
-    )
-
-# =========================================
-# DATAFRAME
-# =========================================
-
-df = pd.DataFrame(todos)
-
-df = df.sort_values(
-    by="PRODUTO"
-).reset_index(drop=True)
-
-print(df.head())
-
-# =========================================
-# EXCEL
-# =========================================
-
-df.to_excel(
-    OUTPUT,
-    index=False
-)
-
-wb = load_workbook(
-    OUTPUT
-)
-
-ws = wb.active
-
-# =========================================
-# HEADER
-# =========================================
-
-fill = PatternFill(
-
-    start_color="16365C",
-
-    end_color="16365C",
-
-    fill_type="solid"
-)
-
-font = Font(
-
-    color="FFFFFF",
-
-    bold=True
-)
-
-for cell in ws[1]:
-
-    cell.fill = fill
-
-    cell.font = font
-
-# =========================================
-# LINKS
-# =========================================
-
-for row in range(2, ws.max_row + 1):
-
-    cell = ws[f"G{row}"]
-
-    url = cell.value
-
-    cell.value = "ABRIR"
-
-    cell.hyperlink = url
-
-    cell.style = "Hyperlink"
-
-# =========================================
-# LARGURA COLUNAS
-# =========================================
-
-larguras = {
-
-    1: 28,
-    2: 70,
-    3: 12,
-    4: 12,
-    5: 15,
-    6: 20,
-    7: 12
-}
-
-for col, largura in larguras.items():
-
-    ws.column_dimensions[
-        get_column_letter(col)
-    ].width = largura
-
-# =========================================
-# TABELA
-# =========================================
-
-tab = Table(
-
-    displayName="TabelaSpani",
-
-    ref=f"A1:G{ws.max_row}"
-)
-
-style = TableStyleInfo(
-
-    name="TableStyleMedium2",
-
-    showRowStripes=False,
-
-    showColumnStripes=False
-)
-
-tab.tableStyleInfo = style
-
-ws.add_table(tab)
-
-wb.save(OUTPUT)
-
-print("EXCEL FINALIZADO")
-
-# =========================================
-# EMAIL
-# =========================================
-
-try:
-
-    print("ENVIANDO EMAIL")
-
-    msg = EmailMessage()
-
-    msg["Subject"] = "SPANI - TESTE 20 ITENS"
-
-    msg["From"] = EMAIL_USER
-
-    msg["To"] = EMAIL_TO
-
-    msg.set_content(
-
-        "Segue arquivo teste com 20 itens."
-    )
-
-    with open(
-        OUTPUT,
-        "rb"
-    ) as f:
-
-        msg.add_attachment(
-
-            f.read(),
-
-            maintype="application",
-
-            subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-
-            filename=OUTPUT
-        )
-
-    with smtplib.SMTP(
-        "smtp.gmail.com",
-        587
-    ) as smtp:
-
-        smtp.starttls()
-
-        smtp.login(
-            EMAIL_USER,
-            EMAIL_PASS
-        )
-
-        smtp.send_message(msg)
-
-    print("EMAIL ENVIADO")
-
-except Exception as e:
+print("\n=====================================")
+print("CATEGORIAS ENCONTRADAS")
+print("=====================================\n")
+
+for secao_id, info in sorted(categorias.items()):
 
     print(
-        "ERRO EMAIL:",
-        e
+
+        f"SECAO ID: {secao_id}"
+
+        f" | CLASSIFICACAO: {info['classificacao']}"
+
+        f" | EXEMPLO: {info['produto_exemplo']}"
     )
 
-print("FINALIZADO")
+print("\nTOTAL CATEGORIAS:", len(categorias))
