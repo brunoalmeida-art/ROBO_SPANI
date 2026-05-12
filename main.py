@@ -43,7 +43,9 @@ with sync_playwright() as p:
         headless=True
     )
 
-    page = browser.new_page()
+    context = browser.new_context()
+
+    page = context.new_page()
 
     # =====================================
     # SITE
@@ -55,6 +57,60 @@ with sync_playwright() as p:
     )
 
     page.wait_for_timeout(8000)
+
+    # =====================================
+    # DEFINIR LOJA MAUA
+    # =====================================
+
+    try:
+
+        print("DEFININDO LOJA MAUA")
+
+        # clicar endereço
+        page.locator(
+            "text=Retirar no endereço"
+        ).click()
+
+        page.wait_for_timeout(3000)
+
+        # buscar loja
+        inputs = page.locator("input")
+
+        total_inputs = inputs.count()
+
+        for i in range(total_inputs):
+
+            try:
+
+                campo = inputs.nth(i)
+
+                campo.fill("Mauá")
+
+                page.wait_for_timeout(2000)
+
+                break
+
+            except:
+
+                pass
+
+        page.wait_for_timeout(4000)
+
+        # clicar loja
+        page.locator(
+            "text=Spani Mauá 1"
+        ).click()
+
+        page.wait_for_timeout(5000)
+
+        print("LOJA DEFINIDA")
+
+    except Exception as e:
+
+        print(
+            "ERRO LOJA:",
+            e
+        )
 
     # =====================================
     # BUSCA
@@ -147,10 +203,8 @@ with sync_playwright() as p:
             page.wait_for_timeout(5000)
 
             # =================================
-            # HTML
+            # TEXTO
             # =================================
-
-            html = page.content()
 
             texto = (
                 page.locator("body")
@@ -165,20 +219,15 @@ with sync_playwright() as p:
 
             try:
 
-                titulo = page.title()
+                h1 = page.locator("h1")
 
-                produto = (
-                    titulo
-                    .replace(
-                        " | Spani Atacadista",
-                        ""
+                if h1.count() > 0:
+
+                    produto = (
+                        h1.first
+                        .inner_text()
+                        .strip()
                     )
-                    .replace(
-                        "Supermercados Online – Loja Virtual",
-                        ""
-                    )
-                    .strip()
-                )
 
             except Exception as e:
 
@@ -453,14 +502,12 @@ try:
 
 Bom dia,
 
-Segue em anexo o relatório atualizado do Spani.
+Segue em anexo o relatório atualizado no site do Spani de Mauá 1.
 
 TOTAL PRODUTOS: {len(df)}
 
 Att,
 Bruno
-
-Competitividade – Spani
 
 """)
 
