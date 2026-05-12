@@ -17,7 +17,7 @@ BASE_API = "https://services-beta.vipcommerce.com.br"
 
 LOJA_URL = "https://www.spanionline.com.br"
 
-BUSCA = " "
+BUSCA = "a"
 
 LIMITE_ITENS = 999999
 
@@ -382,6 +382,12 @@ while True:
 
     print("STATUS:", r.status_code)
 
+    if r.status_code != 200:
+
+        print(r.text)
+
+        break
+
     data = r.json()
 
     produtos = data.get(
@@ -397,10 +403,6 @@ while True:
         break
 
     for p in produtos:
-
-        if len(todos) >= LIMITE_ITENS:
-
-            break
 
         try:
 
@@ -522,6 +524,16 @@ while True:
     pagina += 1
 
 # =========================================
+# VALIDAR DADOS
+# =========================================
+
+if len(todos) == 0:
+
+    raise Exception(
+        "SEM DADOS COLETADOS"
+    )
+
+# =========================================
 # DATAFRAME
 # =========================================
 
@@ -548,15 +560,7 @@ wb = load_workbook(
 
 ws = wb.active
 
-# =========================================
-# CONGELAR LINHA
-# =========================================
-
 ws.freeze_panes = "A2"
-
-# =========================================
-# HEADER
-# =========================================
 
 fill = PatternFill(
 
@@ -580,10 +584,6 @@ for cell in ws[1]:
 
     cell.font = font
 
-# =========================================
-# LINKS
-# =========================================
-
 for row in range(2, ws.max_row + 1):
 
     cell = ws[f"G{row}"]
@@ -595,10 +595,6 @@ for row in range(2, ws.max_row + 1):
     cell.hyperlink = url
 
     cell.style = "Hyperlink"
-
-# =========================================
-# LARGURA COLUNAS
-# =========================================
 
 larguras = {
 
@@ -616,10 +612,6 @@ for col, largura in larguras.items():
     ws.column_dimensions[
         get_column_letter(col)
     ].width = largura
-
-# =========================================
-# TABELA
-# =========================================
 
 tab = Table(
 
