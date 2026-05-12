@@ -216,6 +216,7 @@ with sync_playwright() as p:
 
             try:
 
+                # tenta H1
                 h1 = page.locator("h1")
 
                 if h1.count() > 0:
@@ -227,18 +228,29 @@ with sync_playwright() as p:
                         .upper()
                     )
 
-                # remove espaços duplicados
+                # fallback title
+                if produto == "":
+
+                    produto = (
+                        page.title()
+                        .upper()
+                        .replace(
+                            " | SPANI ATACADISTA",
+                            ""
+                        )
+                        .replace(
+                            "SUPERMERCADOS ONLINE – LOJA VIRTUAL",
+                            ""
+                        )
+                        .strip()
+                    )
+
+                # limpeza
                 produto = re.sub(
                     r'\s+',
                     ' ',
                     produto
                 )
-
-                # remove texto errado
-                produto = produto.replace(
-                    "SUPERMERCADOS ONLINE – LOJA VIRTUAL",
-                    ""
-                ).strip()
 
             except Exception as e:
 
@@ -361,9 +373,6 @@ with sync_playwright() as p:
                 valor_atacado = preco_numero(
                     atacado
                 )
-
-                # se atacado não for menor
-                # limpa atacado e qtd
 
                 if valor_atacado >= valor_varejo:
 
