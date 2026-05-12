@@ -19,7 +19,7 @@ LOJA_URL = "https://www.spanionline.com.br"
 
 BUSCA = "a"
 
-LIMITE_ITENS = 50
+LIMITE_ITENS = 999999
 
 OUTPUT = "SPANI.xlsx"
 
@@ -30,395 +30,203 @@ EMAIL_PASS = os.getenv("EMAIL_PASS")
 EMAIL_TO = os.getenv("EMAIL_TO")
 
 # =========================================
-# SETORES AUTOMATICOS
+# SETORES
 # =========================================
 
 SETORES = {
 
     15: "PET",
-
     16: "PET",
-
     17: "PET",
-
     19: "UTILIDADES",
-
     20: "DESCARTAVEIS",
-
     21: "BAZAR",
-
     22: "BAZAR",
-
     24: "UTILIDADES",
-
     25: "LIMPEZA",
-
     26: "AUTOMOTIVO",
-
     27: "PAPELARIA",
-
     28: "DESCARTAVEIS",
-
     29: "PILHAS",
-
     30: "LIMPEZA",
-
     32: "UTILIDADES",
-
     33: "ELETRICOS",
-
     34: "REFRIGERANTE",
-
     35: "CHA",
-
     38: "SUCOS",
-
     40: "APERITIVOS",
-
     41: "BEBIDAS",
-
     43: "VINHO",
-
     44: "BEBIDAS",
-
     45: "CERVEJA",
-
     46: "BEBIDAS",
-
     47: "ENERGETICOS",
-
     48: "BEBIDAS",
-
     49: "ISOTONICOS",
-
     50: "BEBIDAS",
-
     51: "BISCOITOS",
-
     52: "BISCOITOS",
-
     53: "DOCES",
-
     54: "SALGADINHOS",
-
     55: "BOMBONS",
-
     57: "AMENDOINS",
-
     58: "BISCOITOS",
-
     59: "CHOCOLATES",
-
     61: "TORRADAS",
-
     62: "BISCOITOS",
-
     63: "BISCOITOS",
-
     65: "DOCES",
-
     66: "BISCOITOS",
-
     67: "BISCOITOS",
-
     68: "UTILIDADES",
-
     69: "CONGELADOS",
-
     70: "FRIOS",
-
     71: "ACOUGUE",
-
     72: "FRIOS",
-
     73: "PEIXARIA",
-
     74: "ACOUGUE",
-
     75: "ACOUGUE",
-
     76: "ACOUGUE",
-
     77: "FRIOS",
-
     80: "MERCEARIA",
-
     81: "MERCEARIA",
-
     82: "MERCEARIA",
-
     83: "MERCEARIA",
-
     84: "MERCEARIA",
-
     86: "CONGELADOS",
-
     87: "MERCEARIA",
-
     88: "MERCEARIA",
-
     92: "MERCEARIA",
-
     93: "MERCEARIA",
-
     95: "CONGELADOS",
-
     96: "CONGELADOS",
-
     97: "CONGELADOS",
-
     98: "CONGELADOS",
-
     99: "CONGELADOS",
-
     100: "CONGELADOS",
-
     101: "CONGELADOS",
-
     102: "CONGELADOS",
-
     103: "CONGELADOS",
-
     104: "LATICINIOS",
-
     105: "LATICINIOS",
-
     107: "LATICINIOS",
-
     108: "LATICINIOS",
-
     109: "LEITE",
-
     110: "MASSAS",
-
     111: "LATICINIOS",
-
     112: "FRIOS",
-
     113: "LATICINIOS",
-
     114: "FRIOS",
-
     115: "FRIOS",
-
     116: "LATICINIOS",
-
     117: "HORTIFRUTI",
-
     118: "HORTIFRUTI",
-
     119: "HORTIFRUTI",
-
     120: "HORTIFRUTI",
-
     121: "HORTIFRUTI",
-
     123: "LIMPEZA",
-
     124: "LIMPEZA",
-
     125: "LIMPEZA",
-
     126: "LIMPEZA",
-
     127: "LIMPEZA",
-
     129: "LIMPEZA",
-
     130: "LIMPEZA",
-
     131: "VESTUARIO",
-
     132: "LIMPEZA",
-
     133: "LIMPEZA",
-
     137: "LIMPEZA",
-
     138: "MERCEARIA",
-
     139: "CEREAIS",
-
     140: "CAFE",
-
     141: "MERCEARIA",
-
     142: "SUPLEMENTOS",
-
     143: "MERCEARIA",
-
     144: "MERCEARIA",
-
     145: "ACHOCOLATADOS",
-
     146: "LEITE",
-
     148: "MERCEARIA",
-
     150: "CEREAIS",
-
     151: "MERCEARIA",
-
     152: "MERCEARIA",
-
     153: "CHA",
-
     154: "ACUCAR",
-
     155: "MERCEARIA",
-
     156: "INFANTIL",
-
     158: "MACARRAO",
-
     159: "MERCEARIA",
-
     160: "TEMPEROS",
-
     161: "OLEOS",
-
     162: "MACARRAO",
-
     163: "OLEOS",
-
     164: "MERCEARIA",
-
     165: "MERCEARIA",
-
     166: "MERCEARIA",
-
     167: "MERCEARIA",
-
     168: "MERCEARIA",
-
     170: "TEMPEROS",
-
     171: "MACARRAO",
-
     172: "MACARRAO",
-
     173: "MERCEARIA",
-
     174: "MERCEARIA",
-
     175: "MERCEARIA",
-
     176: "MERCEARIA",
-
     177: "MERCEARIA",
-
     178: "MACARRAO",
-
     179: "MACARRAO",
-
     180: "PADARIA",
-
     181: "PADARIA",
-
     182: "PADARIA",
-
     183: "BAZAR",
-
     184: "HIGIENE",
-
     185: "HIGIENE",
-
     186: "HIGIENE",
-
     188: "HIGIENE",
-
     191: "HIGIENE",
-
     192: "INFANTIL",
-
     193: "HIGIENE",
-
     194: "HIGIENE",
-
     195: "INFANTIL",
-
     196: "INFANTIL",
-
     197: "HIGIENE",
-
     198: "HIGIENE",
-
     199: "HIGIENE",
-
     200: "HIGIENE",
-
     201: "PAPEL HIGIENICO",
-
     202: "HIGIENE",
-
     205: "HIGIENE",
-
     206: "HIGIENE",
-
     208: "LIMPEZA",
-
     210: "FRALDAS",
-
     211: "CONGELADOS",
-
     215: "CONGELADOS",
-
     218: "BISCOITOS",
-
     219: "BISCOITOS",
-
     220: "CERVEJA",
-
     221: "HIGIENE",
-
     222: "LIMPEZA",
-
     223: "LIMPEZA",
-
     224: "MERCEARIA",
-
     225: "HIGIENE",
-
     226: "ESPUMANTES",
-
     227: "MERCEARIA",
-
     228: "MERCEARIA",
-
     229: "INFANTIL",
-
     230: "MERCEARIA",
-
     231: "MERCEARIA",
-
     232: "LIMPEZA",
-
     233: "LATICINIOS",
-
     234: "LATICINIOS",
-
     235: "DESCARTAVEIS",
-
     236: "MERCEARIA",
-
     237: "BEBIDAS",
-
     238: "BEBIDAS",
-
     239: "HIGIENE",
-
     240: "LIMPEZA",
-
     242: "CONGELADOS",
-
     243: "FRALDAS",
-
     244: "MERCEARIA",
-
     245: "LIMPEZA",
-
     246: "LATICINIOS",
-
     248: "MERCEARIA"
 }
 
@@ -720,7 +528,7 @@ while True:
 df = pd.DataFrame(todos)
 
 df = df.sort_values(
-    by="PRODUTO"
+    by=["SETOR", "PRODUTO"]
 ).reset_index(drop=True)
 
 print(df.head())
@@ -739,6 +547,16 @@ wb = load_workbook(
 )
 
 ws = wb.active
+
+# =========================================
+# CONGELAR LINHA
+# =========================================
+
+ws.freeze_panes = "A2"
+
+# =========================================
+# HEADER
+# =========================================
 
 fill = PatternFill(
 
@@ -762,6 +580,10 @@ for cell in ws[1]:
 
     cell.font = font
 
+# =========================================
+# LINKS
+# =========================================
+
 for row in range(2, ws.max_row + 1):
 
     cell = ws[f"G{row}"]
@@ -773,6 +595,10 @@ for row in range(2, ws.max_row + 1):
     cell.hyperlink = url
 
     cell.style = "Hyperlink"
+
+# =========================================
+# LARGURA COLUNAS
+# =========================================
 
 larguras = {
 
@@ -790,6 +616,10 @@ for col, largura in larguras.items():
     ws.column_dimensions[
         get_column_letter(col)
     ].width = largura
+
+# =========================================
+# TABELA
+# =========================================
 
 tab = Table(
 
@@ -823,16 +653,26 @@ try:
 
     msg = EmailMessage()
 
-    msg["Subject"] = "SPANI - TESTE 50 ITENS"
+    msg["Subject"] = "SPANI - RELATORIO PRECOS"
 
     msg["From"] = EMAIL_USER
 
     msg["To"] = EMAIL_TO
 
-    msg.set_content(
+    msg.set_content("""
 
-        "Segue arquivo teste com 50 itens."
-    )
+Bom dia,
+
+Segue em anexo o relatório atualizado de preços coletados no site do Spani Atacadista.
+
+A coleta foi realizada considerando a loja Spani Mauá 1, localizada em Mauá/SP.
+
+Arquivo gerado automaticamente pelo robô de monitoramento de preços.
+
+Att,
+Bruno
+
+""")
 
     with open(
         OUTPUT,
