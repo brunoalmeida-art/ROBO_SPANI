@@ -98,17 +98,9 @@ with sync_playwright() as p:
 
         print(c["name"])
 
-        # =================================
-        # SESSAO
-        # =================================
-
         if c["name"] == "sessao-id":
 
             session_id = c["value"]
-
-        # =================================
-        # VIP TOKEN
-        # =================================
 
         if c["name"] == "vip-token":
 
@@ -222,279 +214,30 @@ while True:
 
     data = r.json()
 
+    # =====================================
+    # DEBUG JSON
+    # =====================================
+
+    print("JSON COMPLETO:")
+    print(data)
+
+    # =====================================
+    # PRODUTOS
+    # =====================================
+
     produtos = data.get(
         "data",
         []
     )
 
-    if len(produtos) == 0:
-
-        print("SEM MAIS PRODUTOS")
-
-        break
+    print("TIPO PRODUTOS:", type(produtos))
 
     print("PRODUTOS:", len(produtos))
 
     # =====================================
-    # LOOP PRODUTOS
+    # PARAR DEBUG
     # =====================================
 
-    for p in produtos:
+    break
 
-        try:
-
-            # =================================
-            # PRODUTO
-            # =================================
-
-            produto = (
-
-                p.get("descricao", "")
-
-                .strip()
-
-                .upper()
-            )
-
-            # =================================
-            # SETOR
-            # =================================
-
-            setor = str(
-
-                p.get(
-                    "secao_id",
-                    "SEM SETOR"
-                )
-
-            ).upper()
-
-            # =================================
-            # PRECO
-            # =================================
-
-            varejo = p.get(
-                "preco",
-                ""
-            )
-
-            atacado = ""
-
-            qtd_atacado = ""
-
-            oferta = p.get("oferta")
-
-            if oferta:
-
-                preco_oferta = oferta.get(
-                    "preco_oferta"
-                )
-
-                quantidade_minima = oferta.get(
-                    "quantidade_minima"
-                )
-
-                try:
-
-                    if (
-
-                        preco_oferta
-
-                        and
-
-                        float(preco_oferta)
-                        <
-                        float(varejo)
-
-                    ):
-
-                        atacado = preco_oferta
-
-                        qtd_atacado = quantidade_minima
-
-                except:
-
-                    pass
-
-            # =================================
-            # LINK
-            # =================================
-
-            slug = p.get(
-                "link",
-                ""
-            )
-
-            produto_id = p.get(
-                "produto_id",
-                ""
-            )
-
-            link = (
-
-                "https://www.spanionline.com.br/produto/"
-
-                f"{produto_id}/"
-
-                f"{slug}"
-            )
-
-            # =================================
-            # SALVAR
-            # =================================
-
-            todos.append({
-
-                "SETOR": setor,
-
-                "PRODUTO": produto,
-
-                "VAREJO": varejo,
-
-                "ATACADO": atacado,
-
-                "QTD ATACADO": qtd_atacado,
-
-                "LINK": link
-            })
-
-        except Exception as e:
-
-            print(
-                "ERRO PRODUTO:",
-                e
-            )
-
-    pagina += 1
-
-# =========================================
-# VALIDAR DADOS
-# =========================================
-
-if len(todos) == 0:
-
-    raise Exception(
-        "SEM DADOS API"
-    )
-
-# =========================================
-# DATAFRAME
-# =========================================
-
-df = pd.DataFrame(todos)
-
-df = df.sort_values(
-    by="PRODUTO"
-)
-
-print(df.head())
-
-# =========================================
-# EXCEL
-# =========================================
-
-df.to_excel(
-    OUTPUT,
-    index=False
-)
-
-wb = load_workbook(
-    OUTPUT
-)
-
-ws = wb.active
-
-# =========================================
-# HEADER
-# =========================================
-
-fill = PatternFill(
-
-    start_color="16365C",
-
-    end_color="16365C",
-
-    fill_type="solid"
-)
-
-font = Font(
-
-    color="FFFFFF",
-
-    bold=True
-)
-
-for cell in ws[1]:
-
-    cell.fill = fill
-
-    cell.font = font
-
-# =========================================
-# LINKS
-# =========================================
-
-for row in range(2, ws.max_row + 1):
-
-    cell = ws[f"F{row}"]
-
-    url = cell.value
-
-    cell.value = "ABRIR"
-
-    cell.hyperlink = url
-
-    cell.style = "Hyperlink"
-
-# =========================================
-# LARGURA
-# =========================================
-
-larguras = {
-
-    1: 25,
-
-    2: 70,
-
-    3: 12,
-
-    4: 12,
-
-    5: 15,
-
-    6: 12
-}
-
-for col, largura in larguras.items():
-
-    ws.column_dimensions[
-        get_column_letter(col)
-    ].width = largura
-
-# =========================================
-# TABELA
-# =========================================
-
-tab = Table(
-
-    displayName="TabelaSpani",
-
-    ref=f"A1:F{ws.max_row}"
-)
-
-style = TableStyleInfo(
-
-    name="TableStyleMedium2",
-
-    showRowStripes=False,
-
-    showColumnStripes=False
-)
-
-tab.tableStyleInfo = style
-
-ws.add_table(tab)
-
-wb.save(OUTPUT)
-
-print("FINALIZADO")
+print("FINALIZADO DEBUG")
