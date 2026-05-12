@@ -5,6 +5,9 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
+import smtplib
+from email.message import EmailMessage
+import os
 
 # =========================================
 # CONFIG
@@ -17,6 +20,12 @@ LOJA_URL = "https://www.spanionline.com.br"
 BUSCA = "a"
 
 OUTPUT = "SPANI.xlsx"
+
+EMAIL_USER = os.getenv("EMAIL_USER")
+
+EMAIL_PASS = os.getenv("EMAIL_PASS")
+
+EMAIL_TO = os.getenv("EMAIL_TO")
 
 # =========================================
 # PLAYWRIGHT
@@ -191,8 +200,6 @@ while True:
 
     print(f"PAGINA {pagina}")
 
-    print(url)
-
     r = requests.get(
 
         url,
@@ -215,29 +222,354 @@ while True:
     data = r.json()
 
     # =====================================
-    # DEBUG JSON
-    # =====================================
-
-    print("JSON COMPLETO:")
-    print(data)
-
-    # =====================================
     # PRODUTOS
     # =====================================
 
     produtos = data.get(
         "data",
+        {}
+    ).get(
+        "produtos",
         []
     )
 
-    print("TIPO PRODUTOS:", type(produtos))
-
     print("PRODUTOS:", len(produtos))
 
+    if len(produtos) == 0:
+
+        print("SEM MAIS PRODUTOS")
+
+        break
+
     # =====================================
-    # PARAR DEBUG
+    # LOOP PRODUTOS
     # =====================================
 
-    break
+    for p in produtos:
 
-print("FINALIZADO DEBUG")
+        try:
+
+            # =================================
+            # PRODUTO
+            # =================================
+
+            produto = (
+
+                p.get(
+                    "descricao",
+                    ""
+                )
+
+                .strip()
+
+                .upper()
+            )
+
+            # =================================
+            # SETOR
+            # =================================
+
+            setor = str(
+
+                p.get(
+                    "secao_id",
+                    "SEM SETOR"
+                )
+
+            ).upper()
+
+            # =================================
+            # PRECO VAREJO
+            # =================================
+
+            varejo = p.get(
+                "preco",
+                ""
+            )
+
+            # =================================
+            # PRECO ATACADO
+            # =================================
+
+            atacado = ""
+
+            qtd_atacado = ""
+
+            oferta = p.get("oferta")
+
+            if oferta:
+
+                preco_oferta = oferta.get(
+                    "preco_oferta"
+                )
+
+                quantidade_minima = oferta.get(
+                    "quantidade_minima"
+                )
+
+                try:
+
+                    if (
+
+                        preco_oferta
+
+                        and
+
+                        float(preco_oferta)
+                        <
+                        float(varejo)
+
+                    ):
+
+                        atacado = preco_oferta
+
+                        qtd_atacado = quantidade_minima
+
+                except:
+
+                    pass
+
+            # =================================
+            # LINK
+            # =================================
+
+            slug = p.get(
+                "link",
+                ""
+            )
+
+            produto_id = p.get(
+                "produto_id",
+                ""
+            )
+
+            link = (
+
+                "https://www.spanionline.com.br/produto/"
+
+                f"{produto_id}/"
+
+                f"{slug}"
+            )
+
+            # =================================
+            # SALVAR
+            # =================================
+
+            todos.append({
+
+                "SETOR": setor,
+
+                "PRODUTO": produto,
+
+                "VAREJO": varejo,
+
+                "ATACADO": atacado,
+
+                "QTD ATACADO": qtd_atacado,
+
+                "LINK": link
+            })
+
+        except Exception as e:
+
+            print(
+                "ERRO PRODUTO:",
+                e
+            )
+
+    pagina += 1
+
+# =========================================
+# VALIDAR
+# =========================================
+
+if len(todos) == 0:
+
+    raise Exception(
+        "SEM DADOS API"
+    )
+
+# =========================================
+# DATAFRAME
+# =========================================
+
+df = pd.DataFrame(todos)
+
+df = df.sort_values(
+    by="PRODUTO"
+)
+
+print(df.head())
+
+# =========================================
+# EXCEL
+# =========================================
+
+df.to_excel(
+    OUTPUT,
+    index=False
+)
+
+wb = load_workbook(
+    OUTPUT
+)
+
+ws = wb.active
+
+# =========================================
+# HEADER
+# =========================================
+
+fill = PatternFill(
+
+    start_color="16365C",
+
+    end_color="16365C",
+
+    fill_type="solid"
+)
+
+font = Font(
+
+    color="FFFFFF",
+
+    bold=True
+)
+
+for cell in ws[1]:
+
+    cell.fill = fill
+
+    cell.font = font
+
+# =========================================
+# LINKS
+# =========================================
+
+for row in range(2, ws.max_row + 1):
+
+    cell = ws[f"F{row}"]
+
+    url = cell.value
+
+    cell.value = "ABRIR"
+
+    cell.hyperlink = url
+
+    cell.style = "Hyperlink"
+
+# =========================================
+# LARGURA
+# =========================================
+
+larguras = {
+
+    1: 18,
+
+    2: 70,
+
+    3: 12,
+
+    4: 12,
+
+    5: 15,
+
+    6: 12
+}
+
+for col, largura in larguras.items():
+
+    ws.column_dimensions[
+        get_column_letter(col)
+    ].width = largura
+
+# =========================================
+# TABELA
+# =========================================
+
+tab = Table(
+
+    displayName="TabelaSpani",
+
+    ref=f"A1:F{ws.max_row}"
+)
+
+style = TableStyleInfo(
+
+    name="TableStyleMedium2",
+
+    showRowStripes=False,
+
+    showColumnStripes=False
+)
+
+tab.tableStyleInfo = style
+
+ws.add_table(tab)
+
+wb.save(OUTPUT)
+
+print("EXCEL FINALIZADO")
+
+# =========================================
+# EMAIL
+# =========================================
+
+try:
+
+    print("ENVIANDO EMAIL")
+
+    msg = EmailMessage()
+
+    msg["Subject"] = "SPANI - ROBÔ PREÇOS"
+
+    msg["From"] = EMAIL_USER
+
+    msg["To"] = EMAIL_TO
+
+    msg.set_content(
+
+        "Arquivo SPANI em anexo."
+    )
+
+    with open(
+        OUTPUT,
+        "rb"
+    ) as f:
+
+        msg.add_attachment(
+
+            f.read(),
+
+            maintype="application",
+
+            subtype="vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+            filename=OUTPUT
+        )
+
+    with smtplib.SMTP(
+        "smtp.gmail.com",
+        587
+    ) as smtp:
+
+        smtp.starttls()
+
+        smtp.login(
+            EMAIL_USER,
+            EMAIL_PASS
+        )
+
+        smtp.send_message(msg)
+
+    print("EMAIL ENVIADO")
+
+except Exception as e:
+
+    print(
+        "ERRO EMAIL:",
+        e
+    )
+
+print("FINALIZADO")
