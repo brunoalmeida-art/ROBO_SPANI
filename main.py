@@ -92,31 +92,27 @@ with sync_playwright() as p:
 
     session_id = ""
 
+    vip_token = ""
+
     for c in cookies_play:
 
         print(c["name"])
+
+        # =================================
+        # SESSAO
+        # =================================
 
         if c["name"] == "sessao-id":
 
             session_id = c["value"]
 
-    # =====================================
-    # VIP TOKEN LOCAL STORAGE
-    # =====================================
+        # =================================
+        # VIP TOKEN
+        # =================================
 
-    vip_token = page.evaluate("""
+        if c["name"] == "vip-token":
 
-    () => {
-
-        return localStorage.getItem(
-            'vip-token'
-        )
-
-    }
-
-    """)
-
-    print("VIP TOKEN RAW:", vip_token)
+            vip_token = c["value"]
 
     browser.close()
 
@@ -134,7 +130,7 @@ if session_id == "":
         "SESSAO VAZIA"
     )
 
-if not vip_token:
+if vip_token == "":
 
     raise Exception(
         "VIP TOKEN VAZIO"
@@ -152,7 +148,7 @@ headers = {
 
     "referer": "https://www.spanionline.com.br/",
 
-    "vip-token": vip_token,
+    "Authorization": f"Bearer {vip_token}",
 
     "organizationid": "67",
 
@@ -169,7 +165,9 @@ headers = {
 
 cookies = {
 
-    "sessao-id": session_id
+    "sessao-id": session_id,
+
+    "vip-token": vip_token
 }
 
 # =========================================
