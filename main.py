@@ -59,44 +59,25 @@ with sync_playwright() as p:
     page.wait_for_timeout(8000)
 
     # =====================================
-    # DEFINIR LOJA MAUA
+    # DEFINIR LOJA
     # =====================================
 
     try:
 
         print("DEFININDO LOJA MAUA")
 
-        # clicar endereço
         page.locator(
             "text=Retirar no endereço"
         ).click()
 
         page.wait_for_timeout(3000)
 
-        # buscar loja
-        inputs = page.locator("input")
+        page.locator(
+            "input"
+        ).nth(1).fill("Mauá")
 
-        total_inputs = inputs.count()
+        page.wait_for_timeout(3000)
 
-        for i in range(total_inputs):
-
-            try:
-
-                campo = inputs.nth(i)
-
-                campo.fill("Mauá")
-
-                page.wait_for_timeout(2000)
-
-                break
-
-            except:
-
-                pass
-
-        page.wait_for_timeout(4000)
-
-        # clicar loja
         page.locator(
             "text=Spani Mauá 1"
         ).click()
@@ -202,10 +183,6 @@ with sync_playwright() as p:
 
             page.wait_for_timeout(5000)
 
-            # =================================
-            # TEXTO
-            # =================================
-
             texto = (
                 page.locator("body")
                 .inner_text()
@@ -272,38 +249,59 @@ with sync_playwright() as p:
                 )
 
             # =================================
-            # PREÇOS
+            # PREÇO VAREJO
             # =================================
 
             varejo = ""
 
-            atacado = ""
-
-            qtd_atacado = ""
-
             try:
 
-                precos = re.findall(
-                    r'R\$\s?\d+,\d+',
-                    texto
+                varejo_elemento = page.locator(
+                    "text=/R\\$\\s?\\d+,\\d+/"
+                ).first
+
+                varejo = (
+                    varejo_elemento
+                    .inner_text()
+                    .strip()
+                    .replace("/un", "")
+                    .strip()
                 )
-
-                precos = list(
-                    dict.fromkeys(precos)
-                )
-
-                if len(precos) >= 1:
-
-                    varejo = precos[0]
-
-                if len(precos) >= 2:
-
-                    atacado = precos[1]
 
             except Exception as e:
 
                 print(
-                    "ERRO PRECO:",
+                    "ERRO VAREJO:",
+                    e
+                )
+
+            # =================================
+            # PREÇO ATACADO
+            # =================================
+
+            atacado = ""
+
+            try:
+
+                valores = page.locator(
+                    "text=/R\\$\\s?\\d+,\\d+/"
+                )
+
+                if valores.count() >= 2:
+
+                    atacado = (
+                        valores
+                        .nth(1)
+                        .inner_text()
+                        .strip()
+                        .replace("/un", "")
+                        .strip()
+                    )
+
+            except Exception as e:
+
+                print(
+                    "ERRO ATACADO:",
                     e
                 )
 
@@ -311,11 +309,13 @@ with sync_playwright() as p:
             # QTD ATACADO
             # =================================
 
+            qtd_atacado = ""
+
             try:
 
                 qtd_match = re.search(
 
-                    r'(\d+).{0,20}unidade',
+                    r'a partir da\s*(\d+)',
 
                     texto,
 
@@ -431,7 +431,7 @@ for cell in ws[1]:
     )
 
 # =========================================
-# LINK
+# LINKS
 # =========================================
 
 for row in range(2, ws.max_row + 1):
@@ -453,7 +453,7 @@ for row in range(2, ws.max_row + 1):
 
 larguras = {
 
-    "A": 30,
+    "A": 35,
 
     "B": 70,
 
@@ -502,12 +502,14 @@ try:
 
 Bom dia,
 
-Segue em anexo o relatório atualizado no site do Spani de Mauá 1.
+Segue em anexo o relatório atualizado do Spani Mauá 1.
 
 TOTAL PRODUTOS: {len(df)}
 
 Att,
 Bruno
+
+Competitividade – Spani
 
 """)
 
