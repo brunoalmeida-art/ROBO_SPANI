@@ -7,60 +7,57 @@ on:
   workflow_dispatch:
 
 jobs:
-
   run-robo:
 
     runs-on: ubuntu-latest
 
     steps:
 
-      # =========================
+      # =========================================
       # BAIXAR CODIGO
-      # =========================
+      # =========================================
 
       - name: Baixar codigo
         uses: actions/checkout@v4
 
-      # =========================
+      # =========================================
       # PYTHON
-      # =========================
+      # =========================================
 
       - name: Instalar Python
         uses: actions/setup-python@v5
-
         with:
           python-version: '3.11'
 
-      # =========================
+      # =========================================
       # BIBLIOTECAS
-      # =========================
+      # =========================================
 
       - name: Instalar bibliotecas
         run: |
           pip install -r requirements.txt
           playwright install chromium
 
-      # =========================
+      # =========================================
       # RODAR ROBO
-      # =========================
+      # =========================================
 
       - name: Rodar robo
 
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_TO: pricing@roldao.com.br
 
         run: |
           python main.py
 
-      # =========================
+      # =========================================
       # UPLOAD EXCEL
-      # =========================
+      # =========================================
 
       - name: Upload Excel
         uses: actions/upload-artifact@v4
-
         with:
           name: SPANI
           path: SPANI.xlsx
