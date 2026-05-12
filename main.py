@@ -204,7 +204,14 @@ with sync_playwright() as p:
                         h1.first
                         .inner_text()
                         .strip()
+                        .upper()
                     )
+
+                produto = re.sub(
+                    r'\s+',
+                    ' ',
+                    produto
+                )
 
             except Exception as e:
 
