@@ -153,16 +153,6 @@ for i, p in enumerate(produtos):
         ean = p.get("codigo_barras")
 
         # =====================
-        # SETOR
-        # =====================
-
-        codigo_setor = p.get(
-            "classificacao_mercadologica_id"
-        )
-
-        setor = f"SETOR {codigo_setor}"
-
-        # =====================
         # LINK
         # =====================
 
@@ -184,6 +174,8 @@ for i, p in enumerate(produtos):
 
         produto_valido = False
 
+        html_produto = ""
+
         if url_produto:
 
             try:
@@ -196,19 +188,21 @@ for i, p in enumerate(produtos):
                     timeout=30
                 )
 
-                html = validar.text.lower()
+                html_produto = validar.text
+
+                html_lower = html_produto.lower()
 
                 if (
-                    "produto indisponível" not in html
+                    "produto indisponível" not in html_lower
                     and
-                    "produto indisponivel" not in html
+                    "produto indisponivel" not in html_lower
                 ):
 
                     produto_valido = True
 
-            except:
+            except Exception as e:
 
-                pass
+                print("ERRO VALIDACAO:", e)
 
         # =====================
         # IGNORAR INVÁLIDOS
@@ -222,6 +216,37 @@ for i, p in enumerate(produtos):
             )
 
             continue
+
+        # =====================
+        # SETOR PELO HTML
+        # =====================
+
+        setor = "SEM SETOR"
+
+        try:
+
+            inicio = html_produto.find(
+                'vip-breadcrumb-label last'
+            )
+
+            if inicio != -1:
+
+                trecho = html_produto[
+                    inicio : inicio + 500
+                ]
+
+                if ">" in trecho and "</span>" in trecho:
+
+                    setor = (
+                        trecho
+                        .split(">")[-2]
+                        .replace("</span", "")
+                        .strip()
+                    )
+
+        except Exception as e:
+
+            print("ERRO SETOR:", e)
 
         # =====================
         # OFERTA
@@ -387,7 +412,7 @@ for row in range(2, ws.max_row + 1):
 
 colunas = {
 
-    "A": 20,
+    "A": 25,
 
     "B": 60,
 
