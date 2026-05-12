@@ -113,22 +113,62 @@ try:
 
     js_dep = r_dep.json()
 
+    print(
+        json.dumps(
+            js_dep,
+            indent=2,
+            ensure_ascii=False
+        )[:5000]
+    )
+
     departamentos = js_dep.get(
         "data",
         []
     )
 
+    # =====================
+    # LOOP DEPARTAMENTOS
+    # =====================
+
     for dep in departamentos:
 
         dep_id = dep.get("id")
 
-        dep_nome = dep.get("descricao")
+        dep_nome = (
+            dep.get("descricao")
+            or dep.get("nome")
+            or dep.get("titulo")
+        )
 
         if dep_id and dep_nome:
 
             MAPA_SETORES[dep_id] = dep_nome
 
-    print("TOTAL SETORES:", len(MAPA_SETORES))
+        # =================
+        # SUBCATEGORIAS
+        # =================
+
+        filhos = dep.get("filhos", [])
+
+        for filho in filhos:
+
+            filho_id = filho.get("id")
+
+            filho_nome = (
+                filho.get("descricao")
+                or filho.get("nome")
+                or filho.get("titulo")
+            )
+
+            if filho_id and filho_nome:
+
+                MAPA_SETORES[
+                    filho_id
+                ] = filho_nome
+
+    print("MAPA SETORES:")
+
+    print(MAPA_SETORES)
 
 except Exception as e:
 
