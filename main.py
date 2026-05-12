@@ -2,10 +2,11 @@ from playwright.sync_api import sync_playwright
 import pandas as pd
 import smtplib
 import os
+import re
 
 from email.message import EmailMessage
 from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Font, PatternFill, Alignment
 from datetime import datetime
 
 # =========================================
@@ -123,7 +124,7 @@ with sync_playwright() as p:
     print("TOTAL LINKS:", len(links))
 
     # =====================================
-    # SOMENTE 1 PAGINA TESTE
+    # TESTE
     # =====================================
 
     links = links[:20]
@@ -146,10 +147,10 @@ with sync_playwright() as p:
             page.wait_for_timeout(4000)
 
             # =================================
-            # NOME PRODUTO
+            # PRODUTO
             # =================================
 
-            nome = ""
+            produto = ""
 
             try:
 
@@ -157,7 +158,7 @@ with sync_playwright() as p:
 
                 if h1.count() > 0:
 
-                    nome = (
+                    produto = (
                         h1.first
                         .inner_text()
                         .strip()
@@ -165,7 +166,7 @@ with sync_playwright() as p:
 
             except Exception as e:
 
-                print("ERRO NOME:", e)
+                print("ERRO PRODUTO:", e)
 
             # =================================
             # SETOR
@@ -192,6 +193,7 @@ with sync_playwright() as p:
                         )
                         .inner_text()
                         .strip()
+                        .upper()
                     )
 
             except Exception as e:
@@ -199,34 +201,58 @@ with sync_playwright() as p:
                 print("ERRO SETOR:", e)
 
             # =================================
-            # PREÇO
+            # PREÇOS
             # =================================
 
-            preco = ""
+            html = page.content()
+
+            precos = re.findall(
+                r'R\$\s?\d+,\d+',
+                html
+            )
+
+            precos = list(
+                dict.fromkeys(precos)
+            )
+
+            varejo = ""
+
+            atacado = ""
+
+            qtd_atacado = ""
+
+            if len(precos) >= 1:
+
+                varejo = precos[0]
+
+            if len(precos) >= 2:
+
+                atacado = precos[1]
+
+            # =================================
+            # QUANTIDADE ATACADO
+            # =================================
 
             try:
 
-                spans = page.locator("span")
+                texto_pagina = (
+                    page.locator("body")
+                    .inner_text()
+                )
 
-                total_spans = spans.count()
+                qtd = re.search(
+                    r'(\d+)\s*ª partir da',
+                    texto_pagina,
+                    re.IGNORECASE
+                )
 
-                for x in range(total_spans):
+                if qtd:
 
-                    texto = (
-                        spans
-                        .nth(x)
-                        .inner_text()
-                    )
+                    qtd_atacado = qtd.group(1)
 
-                    if "R$" in texto:
+            except:
 
-                        preco = texto
-
-                        break
-
-            except Exception as e:
-
-                print("ERRO PRECO:", e)
+                pass
 
             # =================================
             # SALVAR
@@ -236,14 +262,18 @@ with sync_playwright() as p:
 
                 "SETOR": setor,
 
-                "PRODUTO": nome,
+                "PRODUTO": produto,
 
-                "PRECO": preco,
+                "VAREJO": varejo,
+
+                "ATACADO": atacado,
+
+                "QTD ATACADO": qtd_atacado,
 
                 "LINK": link
             })
 
-            print("OK:", nome)
+            print("OK:", produto)
 
         except Exception as e:
 
@@ -271,12 +301,16 @@ df.to_excel(
 )
 
 # =========================================
-# FORMATAR EXCEL
+# FORMATAR
 # =========================================
 
 wb = load_workbook(ARQUIVO)
 
 ws = wb.active
+
+# =========================================
+# HEADER
+# =========================================
 
 fill = PatternFill(
     start_color="1F4E78",
@@ -295,19 +329,44 @@ for cell in ws[1]:
 
     cell.font = font_header
 
+    cell.alignment = Alignment(
+        horizontal="center"
+    )
+
 # =========================================
-# TAMANHO
+# LINK
+# =========================================
+
+for row in range(2, ws.max_row + 1):
+
+    url = ws[f"F{row}"].value
+
+    ws[f"F{row}"] = "ABRIR"
+
+    ws[f"F{row}"].hyperlink = url
+
+    ws[f"F{row}"].font = Font(
+        color="0000FF",
+        underline="single"
+    )
+
+# =========================================
+# LARGURA
 # =========================================
 
 larguras = {
 
     "A": 25,
 
-    "B": 60,
+    "B": 70,
 
-    "C": 15,
+    "C": 12,
 
-    "D": 80
+    "D": 12,
+
+    "E": 15,
+
+    "F": 12
 }
 
 for col, largura in larguras.items():
@@ -315,19 +374,8 @@ for col, largura in larguras.items():
     ws.column_dimensions[col].width = largura
 
 # =========================================
-# LINK CLICAVEL
+# CONGELAR
 # =========================================
-
-for row in range(2, ws.max_row + 1):
-
-    cell = ws[f"D{row}"]
-
-    cell.hyperlink = cell.value
-
-    cell.font = Font(
-        color="0000FF",
-        underline="single"
-    )
 
 ws.freeze_panes = "A2"
 
@@ -363,6 +411,8 @@ TOTAL PRODUTOS: {len(df)}
 
 Att,
 Bruno
+
+Competitividade – Spani
 
 """)
 
