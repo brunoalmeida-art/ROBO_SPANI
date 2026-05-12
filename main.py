@@ -42,6 +42,25 @@ session = requests.Session()
 TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3Nzc5MDc4MTMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.mqyEyNRMBcY0rb4kWeNN0-xnEb8kus9i97w3IR6qjCCPdKEyBjUcZkF77_4KtKvHBI2cx25Fd8E9G4Q1cwsADw"
 
 # =========================
+# HEADERS
+# =========================
+
+HEADERS = {
+
+    "accept": "application/json",
+
+    "content-type": "application/json",
+
+    "user-agent": "Mozilla/5.0",
+
+    "Authorization": f"Bearer {TOKEN}",
+
+    "OrganizationId": "67",
+
+    "DomainKey": "spanionline.com.br"
+}
+
+# =========================
 # DEFINIR CEP
 # =========================
 
@@ -56,25 +75,10 @@ try:
         "cep": CEP
     }
 
-    headers_cep = {
-
-        "accept": "application/json",
-
-        "content-type": "application/json",
-
-        "user-agent": "Mozilla/5.0",
-
-        "Authorization": f"Bearer {TOKEN}",
-
-        "OrganizationId": "67",
-
-        "DomainKey": "spanionline.com.br"
-    }
-
     r_cep = session.post(
         url_cep,
         json=payload,
-        headers=headers_cep,
+        headers=HEADERS,
         timeout=60
     )
 
@@ -83,6 +87,52 @@ try:
 except Exception as e:
 
     print("ERRO CEP:", e)
+
+# =========================
+# ÁRVORE DEPARTAMENTOS
+# =========================
+
+MAPA_SETORES = {}
+
+try:
+
+    url_departamentos = (
+        "https://services-beta.vipcommerce.com.br/"
+        "api-admin/v1/org/67/"
+        "filial/1/"
+        "centro_distribuicao/36/"
+        "loja/classificacoes_mercadologicas/"
+        "departamentos/arvore"
+    )
+
+    r_dep = session.get(
+        url_departamentos,
+        headers=HEADERS,
+        timeout=60
+    )
+
+    js_dep = r_dep.json()
+
+    departamentos = js_dep.get(
+        "data",
+        []
+    )
+
+    for dep in departamentos:
+
+        dep_id = dep.get("id")
+
+        dep_nome = dep.get("descricao")
+
+        if dep_id and dep_nome:
+
+            MAPA_SETORES[dep_id] = dep_nome
+
+    print("TOTAL SETORES:", len(MAPA_SETORES))
+
+except Exception as e:
+
+    print("ERRO DEPARTAMENTOS:", e)
 
 # =========================
 # URL BUSCA
@@ -98,23 +148,6 @@ url = (
 )
 
 # =========================
-# HEADERS
-# =========================
-
-headers = {
-
-    "accept": "application/json",
-
-    "user-agent": "Mozilla/5.0",
-
-    "OrganizationId": "67",
-
-    "DomainKey": "spanionline.com.br",
-
-    "Authorization": f"Bearer {TOKEN}"
-}
-
-# =========================
 # REQUEST
 # =========================
 
@@ -122,7 +155,7 @@ try:
 
     r = session.get(
         url,
-        headers=headers,
+        headers=HEADERS,
         timeout=120
     )
 
@@ -174,6 +207,8 @@ for i, p in enumerate(produtos):
 
         print(f"PROCESSANDO {i+1}/{len(produtos)}")
 
+        produto_id = p.get("produto_id")
+
         nome = p.get("descricao")
 
         varejo = p.get("preco")
@@ -186,38 +221,28 @@ for i, p in enumerate(produtos):
         # SETOR
         # =====================
 
-        setor = "SEM SETOR"
+        codigo_setor = p.get(
+            "classificacao_mercadologica_id"
+        )
 
-        secao = p.get("secao")
-
-        if isinstance(secao, dict):
-
-            setor = secao.get(
-                "descricao",
-                "SEM SETOR"
-            )
-
-        if setor == "SEM SETOR":
-
-            setor = str(
-                p.get(
-                    "classificacao_mercadologica_id",
-                    ""
-                )
-            )
+        setor = MAPA_SETORES.get(
+            codigo_setor,
+            f"SETOR {codigo_setor}"
+        )
 
         # =====================
-        # LINK
+        # LINK CORRETO
         # =====================
 
         link_produto = p.get("link")
 
         url_produto = ""
 
-        if link_produto:
+        if produto_id and link_produto:
 
             url_produto = (
                 "https://www.spanionline.com.br/produto/"
+                f"{produto_id}/"
                 f"{link_produto}"
             )
 
