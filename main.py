@@ -27,7 +27,7 @@ EMAIL_USER = os.getenv("EMAIL_USER")
 
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
-EMAIL_TO = os.getenv("EMAIL_TO")
+EMAIL_TO = os.getenv("luciano.nunes@roldao.com.br, evedson.felix@roldao.com.br, leandro.moreira@roldao.com.br, ali.sati@roldao.com.br, gabriela.novais@roldao.com.br, gilmar.lana@roldao.com.br, gustavo.henrique@roldao.com.br, marcos.teixeira@roldao.com.br, pricing@roldao.com.br, comercial@roldao.com.br, gerente.regional@roldao.com.br, guilherme.roldao@roldao.com.br, victoria.roldao.com.br")
 
 # =========================================
 # SETORES
