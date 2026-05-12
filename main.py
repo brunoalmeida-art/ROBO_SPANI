@@ -62,15 +62,39 @@ headers = {
 # REQUEST
 # =========================
 
-r = requests.get(
-    url,
-    headers=headers,
-    timeout=120
-)
+try:
 
-print("STATUS:", r.status_code)
+    r = requests.get(
+        url,
+        headers=headers,
+        timeout=120
+    )
 
-js = r.json()
+    print("STATUS:", r.status_code)
+
+except Exception as e:
+
+    print("ERRO REQUEST:", e)
+
+    raise
+
+# =========================
+# JSON
+# =========================
+
+try:
+
+    js = r.json()
+
+except Exception as e:
+
+    print("ERRO JSON:", e)
+
+    raise
+
+# =========================
+# DEBUG
+# =========================
 
 print(json.dumps(js, indent=2, ensure_ascii=False)[:10000])
 
@@ -90,58 +114,74 @@ dados = []
 
 for p in produtos:
 
-    nome = p.get("descricao")
+    try:
 
-    varejo = p.get("preco")
+        nome = p.get("descricao")
 
-    varejo = float(varejo) if varejo else None
+        varejo = p.get("preco")
 
-    ean = p.get("codigo_barras")
+        varejo = float(varejo) if varejo else None
 
-    setor = p.get("classificacao_mercadologica_id")
+        ean = p.get("codigo_barras")
 
-    sku = p.get("sku")
+        setor = p.get("classificacao_mercadologica_id")
 
-    link_produto = p.get("link")
+        sku = p.get("sku")
 
-    url_produto = ""
+        link_produto = p.get("link")
 
-    if link_produto:
+        url_produto = ""
 
-        url_produto = f"https://www.spanionline.com.br/produto/{link_produto}"
+        if link_produto:
 
-    # =====================
-    # OFERTA
-    # =====================
+            url_produto = f"https://www.spanionline.com.br/produto/{link_produto}"
 
-    oferta = p.get("oferta", {})
+        # =====================
+        # OFERTA
+        # =====================
 
-    atacado = oferta.get("preco_oferta")
+        oferta = p.get("oferta")
 
-    atacado = float(atacado) if atacado else None
+        atacado = None
 
-    qtd_atacado = oferta.get("quantidade_minima")
+        qtd_atacado = None
 
-    qtd_atacado = int(qtd_atacado) if qtd_atacado else None
+        if oferta:
 
-    dados.append({
+            preco_oferta = oferta.get("preco_oferta")
 
-        "SETOR": setor,
+            if preco_oferta:
 
-        "PRODUTO": nome,
+                atacado = float(preco_oferta)
 
-        "VAREJO": varejo,
+            quantidade_minima = oferta.get("quantidade_minima")
 
-        "ATACADO": atacado,
+            if quantidade_minima:
 
-        "QTD ATACADO": qtd_atacado,
+                qtd_atacado = int(quantidade_minima)
 
-        "EAN": ean,
+        dados.append({
 
-        "SKU": sku,
+            "SETOR": setor,
 
-        "URL": url_produto
-    })
+            "PRODUTO": nome,
+
+            "VAREJO": varejo,
+
+            "ATACADO": atacado,
+
+            "QTD ATACADO": qtd_atacado,
+
+            "EAN": ean,
+
+            "SKU": sku,
+
+            "URL": url_produto
+        })
+
+    except Exception as e:
+
+        print("ERRO PRODUTO:", e)
 
 # =========================
 # DATAFRAME
@@ -149,7 +189,19 @@ for p in produtos:
 
 df = pd.DataFrame(dados)
 
-df = df.drop_duplicates(subset=["EAN"])
+if df.empty:
+
+    print("DATAFRAME VAZIO")
+
+    raise Exception("SEM DADOS")
+
+# =========================
+# REMOVER DUPLICADOS
+# =========================
+
+if "EAN" in df.columns:
+
+    df = df.drop_duplicates(subset=["EAN"])
 
 # =========================
 # EXCEL
@@ -195,28 +247,34 @@ ws["H1"] = "LINK"
 
 for row in range(2, ws.max_row + 1):
 
-    url = ws[f"I{row}"].value
+    try:
 
-    if url:
+        url_link = ws[f"I{row}"].value
 
-        cell = ws[f"H{row}"]
+        if url_link:
 
-        cell.value = "ABRIR"
+            cell = ws[f"H{row}"]
 
-        cell.hyperlink = url
+            cell.value = "ABRIR"
 
-        cell.font = Font(
-            color="0000FF",
-            underline="single"
-        )
+            cell.hyperlink = url_link
 
-    ws[f"C{row}"].number_format = '0.00'
+            cell.font = Font(
+                color="0000FF",
+                underline="single"
+            )
 
-    ws[f"D{row}"].number_format = '0.00'
+        ws[f"C{row}"].number_format = '0.00'
 
-    ws[f"E{row}"].number_format = '0'
+        ws[f"D{row}"].number_format = '0.00'
 
-    ws[f"F{row}"].number_format = '@'
+        ws[f"E{row}"].number_format = '0'
+
+        ws[f"F{row}"].number_format = '@'
+
+    except Exception as e:
+
+        print("ERRO FORMATACAO:", e)
 
 # =========================
 # LARGURA
@@ -323,4 +381,10 @@ Bruno
 # EXECUTAR EMAIL
 # =========================
 
-enviar_email(ARQUIVO_FINAL)
+try:
+
+    enviar_email(ARQUIVO_FINAL)
+
+except Exception as e:
+
+    print("ERRO FINAL:", e)
