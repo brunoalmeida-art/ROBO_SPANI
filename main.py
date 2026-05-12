@@ -19,7 +19,7 @@ BUSCA = "a"
 OUTPUT = "SPANI.xlsx"
 
 # =========================================
-# PEGAR SESSION E VIP TOKEN
+# PLAYWRIGHT
 # =========================================
 
 print("ABRINDO SPANI...")
@@ -42,21 +42,19 @@ with sync_playwright() as p:
     page.wait_for_timeout(10000)
 
     # =====================================
-    # SELECIONAR MAUA 1
+    # SELECIONAR LOJA
     # =====================================
 
     try:
 
         print("SELECIONANDO MAUA 1")
 
-        # abre seletor
         page.locator(
             ".vip-endereco-wrapper"
         ).click()
 
         page.wait_for_timeout(3000)
 
-        # seleciona loja
         page.locator(
             "text=Spani Mauá 1"
         ).click()
@@ -94,33 +92,53 @@ with sync_playwright() as p:
 
     session_id = ""
 
-    vip_token = ""
-
     for c in cookies_play:
 
         print(c["name"])
-
-        # =================================
-        # SESSAO
-        # =================================
 
         if c["name"] == "sessao-id":
 
             session_id = c["value"]
 
-        # =================================
-        # VIP TOKEN
-        # =================================
+    # =====================================
+    # VIP TOKEN LOCAL STORAGE
+    # =====================================
 
-        if c["name"] == "vip-token":
+    vip_token = page.evaluate("""
 
-            vip_token = c["value"]
+    () => {
+
+        return localStorage.getItem(
+            'vip-token'
+        )
+
+    }
+
+    """)
+
+    print("VIP TOKEN RAW:", vip_token)
 
     browser.close()
+
+# =========================================
+# VALIDAR
+# =========================================
 
 print("SESSION:", session_id)
 
 print("VIP TOKEN:", vip_token)
+
+if session_id == "":
+
+    raise Exception(
+        "SESSAO VAZIA"
+    )
+
+if not vip_token:
+
+    raise Exception(
+        "VIP TOKEN VAZIO"
+    )
 
 # =========================================
 # HEADERS
@@ -145,13 +163,17 @@ headers = {
     "user-agent": "Mozilla/5.0"
 }
 
+# =========================================
+# COOKIES REQUEST
+# =========================================
+
 cookies = {
 
     "sessao-id": session_id
 }
 
 # =========================================
-# PAGINAS
+# LOOP PAGINAS
 # =========================================
 
 pagina = 1
@@ -179,6 +201,8 @@ while True:
 
     print(f"PAGINA {pagina}")
 
+    print(url)
+
     r = requests.get(
 
         url,
@@ -200,11 +224,10 @@ while True:
 
     data = r.json()
 
-    # =====================================
-    # DATA
-    # =====================================
-
-    produtos = data.get("data", [])
+    produtos = data.get(
+        "data",
+        []
+    )
 
     if len(produtos) == 0:
 
@@ -223,7 +246,7 @@ while True:
         try:
 
             # =================================
-            # DESCRICAO
+            # PRODUTO
             # =================================
 
             produto = (
@@ -249,17 +272,13 @@ while True:
             ).upper()
 
             # =================================
-            # PRECO VAREJO
+            # PRECO
             # =================================
 
             varejo = p.get(
                 "preco",
                 ""
             )
-
-            # =================================
-            # ATACADO
-            # =================================
 
             atacado = ""
 
@@ -351,7 +370,7 @@ while True:
     pagina += 1
 
 # =========================================
-# VALIDAR
+# VALIDAR DADOS
 # =========================================
 
 if len(todos) == 0:
