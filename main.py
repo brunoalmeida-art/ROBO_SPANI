@@ -38,7 +38,7 @@ session = requests.Session()
 # TOKEN
 # =========================
 
-TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3Nzc5MDc4MTMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.mqyEyNRMBcY0rb4kWeNN0-xnEb8kus9i97w3IR6qjCCPdKEyBjUcZkF77_4KtKvHBI2cx25Fd8E9G4Q1cwsADw"
+TOKEN = "SEU_TOKEN_AQUI"
 
 # =========================
 # HEADERS
@@ -218,31 +218,56 @@ for i, p in enumerate(produtos):
             continue
 
         # =====================
-        # SETOR PELO HTML
+        # SETOR PELO BREADCRUMB
         # =====================
 
         setor = "SEM SETOR"
 
         try:
 
-            inicio = html_produto.find(
-                'vip-breadcrumb-label last'
-            )
+            html_lower = html_produto.lower()
 
-            if inicio != -1:
+            if "breadcrumbs" in html_lower:
+
+                inicio = html_lower.find(
+                    "breadcrumbs"
+                )
 
                 trecho = html_produto[
-                    inicio : inicio + 500
+                    inicio : inicio + 3000
                 ]
 
-                if ">" in trecho and "</span>" in trecho:
+                labels = []
 
-                    setor = (
-                        trecho
-                        .split(">")[-2]
-                        .replace("</span", "")
-                        .strip()
-                    )
+                partes = trecho.split(
+                    '"label"'
+                )
+
+                for parte in partes[1:]:
+
+                    try:
+
+                        nome_label = (
+                            parte
+                            .split(":")[1]
+                            .split(",")[0]
+                            .replace('"', "")
+                            .strip()
+                        )
+
+                        if nome_label:
+
+                            labels.append(
+                                nome_label
+                            )
+
+                    except:
+
+                        pass
+
+                if labels:
+
+                    setor = labels[-1]
 
         except Exception as e:
 
