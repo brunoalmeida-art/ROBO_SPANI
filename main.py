@@ -39,7 +39,7 @@ session = requests.Session()
 # TOKEN
 # =========================
 
-TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJ2aXBjb21tZXJjZSIsImF1ZCI6ImFwaS1hZG1pbiIsInN1YiI6IjZiYzQ4NjdlLWRjYTktMTFlOS04NzQyLTAyMGQ3OTM1OWNhMCIsInZpcGNvbW1lcmNlQ2xpZW50ZUlkIjpudWxsLCJpYXQiOjE3Nzc5MDc4MTMsInZlciI6MSwiY2xpZW50IjpudWxsLCJvcGVyYXRvciI6bnVsbCwib3JnIjoiNjcifQ.mqyEyNRMBcY0rb4kWeNN0-xnEb8kus9i97w3IR6qjCCPdKEyBjUcZkF77_4KtKvHBI2cx25Fd8E9G4Q1cwsADw"
+TOKEN = "SEU_TOKEN_AQUI"
 
 # =========================
 # HEADERS
@@ -87,92 +87,6 @@ try:
 except Exception as e:
 
     print("ERRO CEP:", e)
-
-# =========================
-# ÁRVORE DEPARTAMENTOS
-# =========================
-
-MAPA_SETORES = {}
-
-try:
-
-    url_departamentos = (
-        "https://services-beta.vipcommerce.com.br/"
-        "api-admin/v1/org/67/"
-        "filial/1/"
-        "centro_distribuicao/36/"
-        "loja/classificacoes_mercadologicas/"
-        "departamentos/arvore"
-    )
-
-    r_dep = session.get(
-        url_departamentos,
-        headers=HEADERS,
-        timeout=60
-    )
-
-    js_dep = r_dep.json()
-
-    print(
-        json.dumps(
-            js_dep,
-            indent=2,
-            ensure_ascii=False
-        )[:5000]
-    )
-
-    departamentos = js_dep.get(
-        "data",
-        []
-    )
-
-    # =====================
-    # LOOP DEPARTAMENTOS
-    # =====================
-
-    for dep in departamentos:
-
-        dep_id = dep.get("id")
-
-        dep_nome = (
-            dep.get("descricao")
-            or dep.get("nome")
-            or dep.get("titulo")
-        )
-
-        if dep_id and dep_nome:
-
-            MAPA_SETORES[dep_id] = dep_nome
-
-        # =================
-        # SUBCATEGORIAS
-        # =================
-
-        filhos = dep.get("filhos", [])
-
-        for filho in filhos:
-
-            filho_id = filho.get("id")
-
-            filho_nome = (
-                filho.get("descricao")
-                or filho.get("nome")
-                or filho.get("titulo")
-            )
-
-            if filho_id and filho_nome:
-
-                MAPA_SETORES[
-                    filho_id
-                ] = filho_nome
-
-    print("MAPA SETORES:")
-
-    print(MAPA_SETORES)
-
-except Exception as e:
-
-    print("ERRO DEPARTAMENTOS:", e)
 
 # =========================
 # URL BUSCA
@@ -225,7 +139,7 @@ except Exception as e:
 # DEBUG
 # =========================
 
-print(json.dumps(js, indent=2, ensure_ascii=False)[:10000])
+print(json.dumps(js, indent=2, ensure_ascii=False)[:5000])
 
 # =========================
 # PRODUTOS
@@ -258,17 +172,56 @@ for i, p in enumerate(produtos):
         ean = p.get("codigo_barras")
 
         # =====================
-        # SETOR
+        # SETOR REAL
         # =====================
 
-        codigo_setor = p.get(
-            "classificacao_mercadologica_id"
-        )
+        setor = "SEM SETOR"
 
-        setor = MAPA_SETORES.get(
-            codigo_setor,
-            f"SETOR {codigo_setor}"
-        )
+        try:
+
+            if produto_id:
+
+                url_produto_api = (
+                    "https://services-beta.vipcommerce.com.br/"
+                    "api-admin/v1/org/67/"
+                    "filial/1/"
+                    "centro_distribuicao/36/"
+                    "produto/"
+                    f"{produto_id}"
+                )
+
+                r_prod = session.get(
+                    url_produto_api,
+                    headers=HEADERS,
+                    timeout=30
+                )
+
+                js_prod = r_prod.json()
+
+                data_prod = js_prod.get(
+                    "data",
+                    {}
+                )
+
+                setor = (
+                    data_prod.get("departamento")
+                    or data_prod.get("secao")
+                    or data_prod.get("categoria")
+                    or "SEM SETOR"
+                )
+
+                if isinstance(setor, dict):
+
+                    setor = (
+                        setor.get("descricao")
+                        or setor.get("nome")
+                        or setor.get("titulo")
+                        or "SEM SETOR"
+                    )
+
+        except Exception as e:
+
+            print("ERRO SETOR:", e)
 
         # =====================
         # LINK CORRETO
