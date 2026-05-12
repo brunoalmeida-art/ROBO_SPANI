@@ -19,7 +19,7 @@ LOJA_URL = "https://www.spanionline.com.br"
 
 BUSCA = "a"
 
-LIMITE_ITENS = 10
+LIMITE_ITENS = 20
 
 OUTPUT = "SPANI_TESTE.xlsx"
 
@@ -49,7 +49,9 @@ SETORES = {
 
     22: "BAZAR",
 
-    124: "UTILIDADES"
+    124: "UTILIDADES",
+
+    126: "UTILIDADES DOMESTICAS"
 }
 
 # =========================================
@@ -535,12 +537,12 @@ for row in range(2, ws.max_row + 1):
 
 larguras = {
 
-    1: 20,
-    2: 60,
+    1: 28,
+    2: 70,
     3: 12,
     4: 12,
     5: 15,
-    6: 18,
+    6: 20,
     7: 12
 }
 
@@ -588,7 +590,7 @@ try:
 
     msg = EmailMessage()
 
-    msg["Subject"] = "SPANI - TESTE 10 ITENS"
+    msg["Subject"] = "SPANI - TESTE 20 ITENS"
 
     msg["From"] = EMAIL_USER
 
@@ -596,7 +598,7 @@ try:
 
     msg.set_content(
 
-        "Segue arquivo teste com 10 itens."
+        "Segue arquivo teste com 20 itens."
     )
 
     with open(
