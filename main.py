@@ -17,7 +17,7 @@ BASE_API = "https://services-beta.vipcommerce.com.br"
 
 LOJA_URL = "https://www.spanionline.com.br"
 
-BUSCA = "a"
+BUSCA = ""
 
 LIMITE_ITENS = 999999
 
