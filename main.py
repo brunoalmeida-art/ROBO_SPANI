@@ -80,8 +80,6 @@ try:
 
     print("STATUS CEP:", r_cep.status_code)
 
-    print(r_cep.text[:1000])
-
 except Exception as e:
 
     print("ERRO CEP:", e)
@@ -162,7 +160,7 @@ print(json.dumps(js, indent=2, ensure_ascii=False)[:10000])
 
 produtos = js.get("data", {}).get("produtos", [])
 
-print("TOTAL PRODUTOS:", len(produtos))
+print("TOTAL PRODUTOS API:", len(produtos))
 
 # =========================
 # PROCESSAMENTO
@@ -170,9 +168,11 @@ print("TOTAL PRODUTOS:", len(produtos))
 
 dados = []
 
-for p in produtos:
+for i, p in enumerate(produtos):
 
     try:
+
+        print(f"PROCESSANDO {i+1}/{len(produtos)}")
 
         nome = p.get("descricao")
 
@@ -182,9 +182,33 @@ for p in produtos:
 
         ean = p.get("codigo_barras")
 
-        setor = str(
-            p.get("classificacao_mercadologica_id", "")
-        )
+        # =====================
+        # SETOR
+        # =====================
+
+        setor = "SEM SETOR"
+
+        secao = p.get("secao")
+
+        if isinstance(secao, dict):
+
+            setor = secao.get(
+                "descricao",
+                "SEM SETOR"
+            )
+
+        if setor == "SEM SETOR":
+
+            setor = str(
+                p.get(
+                    "classificacao_mercadologica_id",
+                    ""
+                )
+            )
+
+        # =====================
+        # LINK
+        # =====================
 
         link_produto = p.get("link")
 
@@ -198,6 +222,51 @@ for p in produtos:
             )
 
         # =====================
+        # VALIDAR PRODUTO
+        # =====================
+
+        produto_valido = False
+
+        if url_produto:
+
+            try:
+
+                validar = session.get(
+                    url_produto,
+                    headers={
+                        "User-Agent": "Mozilla/5.0"
+                    },
+                    timeout=30
+                )
+
+                html = validar.text.lower()
+
+                if (
+                    "produto indisponível" not in html
+                    and
+                    "produto indisponivel" not in html
+                ):
+
+                    produto_valido = True
+
+            except:
+
+                pass
+
+        # =====================
+        # IGNORAR INVÁLIDOS
+        # =====================
+
+        if not produto_valido:
+
+            print(
+                "❌ PRODUTO INDISPONÍVEL:",
+                nome
+            )
+
+            continue
+
+        # =====================
         # OFERTA
         # =====================
 
@@ -209,11 +278,15 @@ for p in produtos:
 
         if oferta:
 
-            preco_oferta = oferta.get("preco_oferta")
+            preco_oferta = oferta.get(
+                "preco_oferta"
+            )
 
             if preco_oferta:
 
-                atacado = float(preco_oferta)
+                atacado = float(
+                    preco_oferta
+                )
 
             quantidade_minima = oferta.get(
                 "quantidade_minima"
@@ -224,6 +297,10 @@ for p in produtos:
                 qtd_atacado = int(
                     quantidade_minima
                 )
+
+        # =====================
+        # SALVAR
+        # =====================
 
         dados.append({
 
@@ -241,6 +318,8 @@ for p in produtos:
 
             "URL": url_produto
         })
+
+        print("✅ OK:", nome)
 
     except Exception as e:
 
@@ -267,6 +346,8 @@ if "EAN" in df.columns:
     df = df.drop_duplicates(
         subset=["EAN"]
     )
+
+print("TOTAL PRODUTOS VÁLIDOS:", len(df))
 
 # =========================
 # EXCEL
@@ -349,7 +430,7 @@ for row in range(2, ws.max_row + 1):
 
 colunas = {
 
-    "A": 20,
+    "A": 25,
 
     "B": 60,
 
@@ -412,7 +493,7 @@ A coleta foi realizada utilizando o CEP {CEP}.
 
 Arquivo gerado automaticamente pelo robô de monitoramento de preços.
 
-TOTAL PRODUTOS: {len(df)}
+TOTAL PRODUTOS VÁLIDOS: {len(df)}
 
 Att,
 Bruno
