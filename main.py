@@ -43,6 +43,12 @@ session = requests.Session()
 TOKEN = "SEU_TOKEN_AQUI"
 
 # =========================
+# SESSION ID
+# =========================
+
+SESSION_ID = "23e9a90c19b0c9a219a4d1d08636a242"
+
+# =========================
 # HEADERS
 # =========================
 
@@ -52,13 +58,27 @@ HEADERS = {
 
     "content-type": "application/json",
 
-    "user-agent": "Mozilla/5.0",
+    "user-agent": (
+        "Mozilla/5.0 "
+        "(Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 "
+        "(KHTML, like Gecko) "
+        "Chrome/148.0.0.0 "
+        "Safari/537.36 "
+        "Edg/148.0.0.0"
+    ),
 
     "Authorization": f"Bearer {TOKEN}",
 
     "OrganizationId": "67",
 
-    "DomainKey": "spanionline.com.br"
+    "DomainKey": "spanionline.com.br",
+
+    "Origin": "https://www.spanionline.com.br",
+
+    "Referer": "https://www.spanionline.com.br/",
+
+    "Session-Id": SESSION_ID
 }
 
 # =========================
@@ -241,7 +261,7 @@ for i, p in enumerate(produtos):
                 validar = session.get(
                     url_produto,
                     headers={
-                        "User-Agent": "Mozilla/5.0"
+                        "User-Agent": HEADERS["user-agent"]
                     },
                     timeout=30
                 )
@@ -276,7 +296,7 @@ for i, p in enumerate(produtos):
             continue
 
         # =====================
-        # SETOR PELO BREADCRUMB
+        # SETOR
         # =====================
 
         setor = "SEM SETOR"
@@ -476,14 +496,6 @@ for row in range(2, ws.max_row + 1):
                 color="0000FF",
                 underline="single"
             )
-
-        ws[f"C{row}"].number_format = '0.00'
-
-        ws[f"D{row}"].number_format = '0.00'
-
-        ws[f"E{row}"].number_format = '0'
-
-        ws[f"F{row}"].number_format = '@'
 
     except Exception as e:
 
