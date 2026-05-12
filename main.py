@@ -200,7 +200,7 @@ with sync_playwright() as p:
                 timeout=120000
             )
 
-            page.wait_for_timeout(5000)
+            page.wait_for_timeout(6000)
 
             texto = (
                 page.locator("body")
@@ -211,91 +211,75 @@ with sync_playwright() as p:
             # PRODUTO
             # =================================
 
-            produto = ""
+            produto = "SEM DESCRICAO"
 
             try:
 
-                seletores_produto = [
+                # PEGA PRIMEIRO H1 VALIDO
+                h1s = page.locator("h1")
 
-                    "h1",
+                if h1s.count() > 0:
 
-                    ".product-title",
+                    for x in range(h1s.count()):
 
-                    ".product-name",
-
-                    ".titulo-produto",
-
-                    ".vip-product-title",
-
-                    "div h1",
-
-                ]
-
-                for seletor in seletores_produto:
-
-                    try:
-
-                        elemento = page.locator(seletor)
-
-                        if elemento.count() > 0:
-
-                            texto_produto = (
-                                elemento.first
-                                .inner_text()
-                                .strip()
-                                .upper()
-                            )
-
-                            if (
-                                texto_produto != ""
-                                and "SUPERMERCADOS ONLINE" not in texto_produto
-                            ):
-
-                                produto = texto_produto
-
-                                break
-
-                    except:
-
-                        pass
-
-                # FALLBACK FINAL
-                if produto == "":
-
-                    try:
-
-                        linhas = (
-                            page.locator("body")
+                        valor = (
+                            h1s.nth(x)
                             .inner_text()
-                            .split("\n")
+                            .strip()
+                            .upper()
                         )
 
-                        for linha in linhas:
+                        if (
+                            valor != ""
+                            and "RETIRAR NA LOJA" not in valor
+                            and "SUPERMERCADOS ONLINE" not in valor
+                            and len(valor) > 5
+                        ):
 
-                            linha = linha.strip().upper()
+                            produto = valor
 
-                            if (
-                                len(linha) > 10
-                                and "SUPERMERCADOS ONLINE" not in linha
-                                and "ADICIONAR AO CARRINHO" not in linha
-                                and "COMPARE" not in linha
-                                and "R$" not in linha
-                            ):
+                            break
 
-                                produto = linha
+                # FALLBACK
+                if produto == "SEM DESCRICAO":
 
-                                break
+                    linhas = texto.split("\n")
 
-                    except:
+                    for linha in linhas:
 
-                        produto = "SEM DESCRICAO"
+                        linha = linha.strip().upper()
 
-                # LIMPEZA
+                        if (
+
+                            len(linha) > 15
+
+                            and "RETIRAR NA LOJA" not in linha
+
+                            and "ADICIONAR AO CARRINHO" not in linha
+
+                            and "SUPERMERCADOS ONLINE" not in linha
+
+                            and "COMPARE" not in linha
+
+                            and "QUEM SOMOS" not in linha
+
+                            and "TRABALHE CONOSCO" not in linha
+
+                            and "PORTAL DO COLABORADOR" not in linha
+
+                            and "R$" not in linha
+
+                        ):
+
+                            produto = linha
+
+                            break
+
                 produto = re.sub(
                     r'\s+',
                     ' ',
                     produto
-                )
+                ).strip()
 
             except Exception as e:
 
@@ -499,10 +483,6 @@ wb = load_workbook(
 
 ws = wb.active
 
-# =========================================
-# HEADER
-# =========================================
-
 fill = PatternFill(
     start_color="1F4E78",
     end_color="1F4E78",
@@ -517,7 +497,6 @@ font_header = Font(
 for cell in ws[1]:
 
     cell.fill = fill
-
     cell.font = font_header
 
     cell.alignment = Alignment(
