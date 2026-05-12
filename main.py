@@ -1,430 +1,191 @@
-import requests
+from playwright.sync_api import sync_playwright
 import pandas as pd
-import smtplib
-import os
-import json
-import sys
-
-from email.message import EmailMessage
-from openpyxl import load_workbook
-from openpyxl.styles import Font, PatternFill
-from datetime import datetime
-
-# =========================
-# DATA
-# =========================
-
-HOJE = datetime.now().strftime("%d-%m-%Y")
-
-ARQUIVO_FINAL = f"SPANI_FULL_{HOJE}.xlsx"
-
-# =========================
-# EMAIL
-# =========================
-
-EMAIL_USER = os.getenv("EMAIL_USER")
-
-EMAIL_PASS = os.getenv("EMAIL_PASS")
-
-DESTINATARIO = "pricing@roldao.com.br"
-
-EMAIL_ALERTA = "bruno.almeida@roldao.com.br"
-
-# =========================
-# SESSION
-# =========================
-
-session = requests.Session()
-
-# =========================
-# TOKEN COOKIE
-# =========================
-
-TOKEN = """
-COLE_AQUI_O_VALOR_DO_COOKIE_VIP_TOKEN
-""".strip()
-
-# =========================
-# SESSAO
-# =========================
-
-SESSION_ID = "23e9a90c19b0c9a219a4d1d08636a242"
-
-# =========================
-# COOKIES
-# =========================
-
-session.cookies.set(
-    "vip-token",
-    TOKEN,
-    domain=".spanionline.com.br"
-)
-
-session.cookies.set(
-    "sessao-id",
-    SESSION_ID,
-    domain=".spanionline.com.br"
-)
-
-# =========================
-# HEADERS
-# =========================
-
-HEADERS = {
-
-    "accept": "application/json",
-
-    "content-type": "application/json",
-
-    "user-agent": (
-        "Mozilla/5.0 "
-        "(Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 "
-        "(KHTML, like Gecko) "
-        "Chrome/148.0.0.0 "
-        "Safari/537.36 "
-        "Edg/148.0.0.0"
-    ),
-
-    "OrganizationId": "67",
-
-    "DomainKey": "spanionline.com.br",
-
-    "Origin": "https://www.spanionline.com.br",
-
-    "Referer": "https://www.spanionline.com.br/",
-
-    "Session-Id": SESSION_ID
-}
-
-# =========================
-# URL BUSCA
-# =========================
-
-url = (
-    "https://services-beta.vipcommerce.com.br/"
-    "api-admin/v1/org/67/"
-    "filial/1/"
-    "centro_distribuicao/36/"
-    "loja/buscas/produtos/termo/a"
-    "?page=1"
-)
-
-# =========================
-# REQUEST
-# =========================
-
-try:
-
-    r = session.get(
-        url,
-        headers=HEADERS,
-        timeout=120
-    )
-
-    print("STATUS:", r.status_code)
-
-except Exception as e:
-
-    print("ERRO REQUEST:", e)
-
-    sys.exit()
-
-# =========================
-# JSON
-# =========================
-
-try:
-
-    js = r.json()
-
-except Exception as e:
-
-    print("ERRO JSON:", e)
-
-    sys.exit()
-
-# =========================
-# DEBUG
-# =========================
-
-print(json.dumps(js, indent=2, ensure_ascii=False)[:5000])
-
-# =========================
-# PRODUTOS
-# =========================
-
-produtos = js.get("data", {}).get("produtos", [])
-
-print("TOTAL PRODUTOS API:", len(produtos))
-
-# =========================
-# TOKEN / COOKIE INVALIDO
-# =========================
-
-if not produtos:
-
-    print("SEM DADOS - TOKEN OU COOKIE INVALIDO")
-
-    try:
-
-        if EMAIL_USER and EMAIL_PASS:
-
-            msg = EmailMessage()
-
-            msg["Subject"] = (
-                "ROBO SPANI - TOKEN INVALIDO"
-            )
-
-            msg["From"] = EMAIL_USER
-
-            msg["To"] = EMAIL_ALERTA
-
-            msg.set_content(f"""
-
-O robô do Spani identificou falha de autenticação.
-
-STATUS API: {r.status_code}
-
-ERRO:
-
-{json.dumps(js, indent=2, ensure_ascii=False)}
-
-Token/Cookie inválido.
-
-Data:
-{HOJE}
-
-Att,
-Robô Spani
-""")
-
-            with smtplib.SMTP_SSL(
-                "smtp.gmail.com",
-                465
-            ) as smtp:
-
-                smtp.login(
-                    EMAIL_USER,
-                    EMAIL_PASS
-                )
-
-                smtp.send_message(msg)
-
-            print(
-                "EMAIL DE ALERTA ENVIADO"
-            )
-
-    except Exception as e:
-
-        print(
-            "ERRO EMAIL:",
-            e
-        )
-
-    sys.exit()
-
-# =========================
-# PROCESSAMENTO
-# =========================
+import time
 
 dados = []
 
-for i, p in enumerate(produtos):
+with sync_playwright() as p:
 
-    try:
+    browser = p.chromium.launch(
+        headless=True
+    )
 
-        print(f"PROCESSANDO {i+1}/{len(produtos)}")
+    page = browser.new_page()
 
-        produto_id = p.get("produto_id")
+    # =========================
+    # SITE
+    # =========================
 
-        nome = p.get("descricao")
+    page.goto(
+        "https://www.spanionline.com.br",
+        timeout=120000
+    )
 
-        varejo = p.get("preco")
+    page.wait_for_timeout(8000)
 
-        varejo = float(varejo) if varejo else None
+    # =========================
+    # BUSCA
+    # =========================
 
-        ean = p.get("codigo_barras")
+    busca = page.locator('input')
 
-        # =====================
-        # LINK
-        # =====================
+    busca.first.fill("a")
 
-        link_produto = p.get("link")
+    page.keyboard.press("Enter")
 
-        url_produto = ""
+    page.wait_for_timeout(8000)
 
-        if produto_id and link_produto:
+    # =========================
+    # SCROLL
+    # =========================
 
-            url_produto = (
-                "https://www.spanionline.com.br/produto/"
-                f"{produto_id}/"
-                f"{link_produto}"
-            )
+    for i in range(30):
 
-        # =====================
-        # VALIDAR PRODUTO
-        # =====================
+        page.mouse.wheel(0, 15000)
 
-        produto_valido = False
+        print(f"SCROLL {i+1}")
 
-        html_produto = ""
+        page.wait_for_timeout(3000)
 
-        if url_produto:
+    # =========================
+    # PRODUTOS
+    # =========================
 
-            try:
+    produtos = page.locator("a")
 
-                validar = session.get(
-                    url_produto,
-                    headers={
-                        "User-Agent": HEADERS["user-agent"]
-                    },
-                    timeout=30
-                )
+    total = produtos.count()
 
-                html_produto = validar.text
+    print("TOTAL ELEMENTOS:", total)
 
-                html_lower = html_produto.lower()
+    links = []
 
-                if (
-                    "produto indisponível" not in html_lower
-                    and
-                    "produto indisponivel" not in html_lower
-                ):
-
-                    produto_valido = True
-
-            except Exception as e:
-
-                print("ERRO VALIDACAO:", e)
-
-        # =====================
-        # IGNORAR INVÁLIDOS
-        # =====================
-
-        if not produto_valido:
-
-            print(
-                "❌ PRODUTO INDISPONÍVEL:",
-                nome
-            )
-
-            continue
-
-        # =====================
-        # SETOR
-        # =====================
-
-        setor = "SEM SETOR"
+    for i in range(total):
 
         try:
 
-            html_lower = html_produto.lower()
+            href = produtos.nth(i).get_attribute("href")
 
-            if "breadcrumbs" in html_lower:
+            if href and "/produto/" in href:
 
-                inicio = html_lower.find(
-                    "breadcrumbs"
+                link = (
+                    "https://www.spanionline.com.br"
+                    + href
                 )
 
-                trecho = html_produto[
-                    inicio : inicio + 3000
-                ]
+                if link not in links:
 
-                labels = []
+                    links.append(link)
 
-                partes = trecho.split(
-                    '"label"'
+        except:
+
+            pass
+
+    print("TOTAL LINKS:", len(links))
+
+    # =========================
+    # ABRIR PRODUTOS
+    # =========================
+
+    for i, link in enumerate(links):
+
+        try:
+
+            print(f"{i+1}/{len(links)}")
+
+            page.goto(
+                link,
+                timeout=120000
+            )
+
+            page.wait_for_timeout(4000)
+
+            html = page.content()
+
+            # =====================
+            # NOME
+            # =====================
+
+            nome = ""
+
+            try:
+
+                nome = (
+                    page.locator("h1")
+                    .first
+                    .inner_text()
+                    .strip()
                 )
 
-                for parte in partes[1:]:
+            except:
 
-                    try:
+                pass
 
-                        nome_label = (
-                            parte
-                            .split(":")[1]
-                            .split(",")[0]
-                            .replace('"', "")
-                            .strip()
-                        )
+            # =====================
+            # PREÇO
+            # =====================
 
-                        if nome_label:
+            preco = ""
 
-                            labels.append(
-                                nome_label
-                            )
+            try:
 
-                    except:
+                spans = page.locator("span")
 
-                        pass
+                total_spans = spans.count()
 
-                if labels:
+                for x in range(total_spans):
 
-                    setor = labels[-1]
+                    texto = spans.nth(x).inner_text()
+
+                    if "R$" in texto:
+
+                        preco = texto
+
+                        break
+
+            except:
+
+                pass
+
+            # =====================
+            # SETOR
+            # =====================
+
+            setor = ""
+
+            try:
+
+                breadcrumb = page.locator(
+                    ".vip-breadcrumb-label.last"
+                )
+
+                setor = (
+                    breadcrumb.first
+                    .inner_text()
+                    .strip()
+                )
+
+            except:
+
+                pass
+
+            dados.append({
+
+                "SETOR": setor,
+
+                "PRODUTO": nome,
+
+                "PRECO": preco,
+
+                "LINK": link
+            })
+
+            print(nome)
 
         except Exception as e:
 
-            print("ERRO SETOR:", e)
+            print("ERRO:", e)
 
-        # =====================
-        # OFERTA
-        # =====================
-
-        oferta = p.get("oferta")
-
-        atacado = None
-
-        qtd_atacado = None
-
-        if oferta:
-
-            preco_oferta = oferta.get(
-                "preco_oferta"
-            )
-
-            if preco_oferta:
-
-                atacado = float(
-                    preco_oferta
-                )
-
-            quantidade_minima = oferta.get(
-                "quantidade_minima"
-            )
-
-            if quantidade_minima:
-
-                qtd_atacado = int(
-                    quantidade_minima
-                )
-
-        # =====================
-        # SALVAR
-        # =====================
-
-        dados.append({
-
-            "SETOR": setor,
-
-            "PRODUTO": nome,
-
-            "VAREJO": varejo,
-
-            "ATACADO": atacado,
-
-            "QTD ATACADO": qtd_atacado,
-
-            "EAN": ean,
-
-            "URL": url_produto
-        })
-
-        print("✅ OK:", nome)
-
-    except Exception as e:
-
-        print("ERRO PRODUTO:", e)
+    browser.close()
 
 # =========================
 # DATAFRAME
@@ -432,207 +193,17 @@ for i, p in enumerate(produtos):
 
 df = pd.DataFrame(dados)
 
-if df.empty:
+df = df.drop_duplicates()
 
-    print("DATAFRAME VAZIO")
-
-    sys.exit()
-
-# =========================
-# REMOVER DUPLICADOS
-# =========================
-
-if "EAN" in df.columns:
-
-    df = df.drop_duplicates(
-        subset=["EAN"]
-    )
-
-print("TOTAL PRODUTOS VÁLIDOS:", len(df))
+print(df.head())
 
 # =========================
 # EXCEL
 # =========================
 
 df.to_excel(
-    ARQUIVO_FINAL,
+    "SPANI.xlsx",
     index=False
 )
 
-# =========================
-# FORMATAR EXCEL
-# =========================
-
-wb = load_workbook(
-    ARQUIVO_FINAL
-)
-
-ws = wb.active
-
-fill = PatternFill(
-    start_color="1F4E78",
-    end_color="1F4E78",
-    fill_type="solid"
-)
-
-font_header = Font(
-    color="FFFFFF",
-    bold=True
-)
-
-for cell in ws[1]:
-
-    cell.fill = fill
-
-    cell.font = font_header
-
-# =========================
-# LINK
-# =========================
-
-ws.insert_cols(7)
-
-ws["G1"] = "LINK"
-
-for row in range(2, ws.max_row + 1):
-
-    try:
-
-        url_link = ws[f"H{row}"].value
-
-        if url_link:
-
-            cell = ws[f"G{row}"]
-
-            cell.value = "ABRIR"
-
-            cell.hyperlink = url_link
-
-            cell.font = Font(
-                color="0000FF",
-                underline="single"
-            )
-
-    except Exception as e:
-
-        print("ERRO FORMATACAO:", e)
-
-# =========================
-# LARGURA
-# =========================
-
-colunas = {
-
-    "A": 25,
-
-    "B": 60,
-
-    "C": 12,
-
-    "D": 12,
-
-    "E": 14,
-
-    "F": 20,
-
-    "G": 10,
-
-    "H": 70
-}
-
-for col, largura in colunas.items():
-
-    ws.column_dimensions[col].width = largura
-
-ws.column_dimensions["H"].hidden = True
-
-ws.freeze_panes = "A2"
-
-wb.save(
-    ARQUIVO_FINAL
-)
-
-print("🔥 FINALIZADO:", ARQUIVO_FINAL)
-
-# =========================
-# EMAIL
-# =========================
-
-def enviar_email(arquivo):
-
-    if not EMAIL_USER or not EMAIL_PASS:
-
-        print("❌ EMAIL NÃO CONFIGURADO")
-
-        return
-
-    msg = EmailMessage()
-
-    msg["Subject"] = (
-        f"Relatório Spani {HOJE}"
-    )
-
-    msg["From"] = EMAIL_USER
-
-    msg["To"] = DESTINATARIO
-
-    msg.set_content(f"""
-
-Bom dia,
-
-Segue em anexo o relatório atualizado do Spani.
-
-TOTAL PRODUTOS VÁLIDOS: {len(df)}
-
-Att,
-Bruno
-
-""")
-
-    with open(arquivo, "rb") as f:
-
-        msg.add_attachment(
-            f.read(),
-            maintype="application",
-            subtype="octet-stream",
-            filename=arquivo
-        )
-
-    try:
-
-        with smtplib.SMTP_SSL(
-            "smtp.gmail.com",
-            465
-        ) as smtp:
-
-            smtp.login(
-                EMAIL_USER,
-                EMAIL_PASS
-            )
-
-            smtp.send_message(msg)
-
-            print(
-                "📧 EMAIL ENVIADO!"
-            )
-
-    except Exception as e:
-
-        print(
-            "ERRO EMAIL:",
-            e
-        )
-
-# =========================
-# EXECUTAR
-# =========================
-
-try:
-
-    enviar_email(
-        ARQUIVO_FINAL
-    )
-
-except Exception as e:
-
-    print("ERRO FINAL:", e)
+print("FINALIZADO")
