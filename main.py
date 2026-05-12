@@ -62,12 +62,17 @@ with sync_playwright() as p:
         headless=True
     )
 
-    context = browser.new_context()
+    context = browser.new_context(
+        viewport={
+            "width": 1600,
+            "height": 900
+        }
+    )
 
     page = context.new_page()
 
     # =====================================
-    # ABRIR SITE
+    # SITE
     # =====================================
 
     page.goto(
@@ -75,15 +80,15 @@ with sync_playwright() as p:
         timeout=120000
     )
 
-    page.wait_for_timeout(8000)
+    page.wait_for_timeout(10000)
 
     # =====================================
-    # DEFINIR LOJA
+    # DEFINIR LOJA MAUA 1
     # =====================================
 
     try:
 
-        print("DEFININDO LOJA MAUA")
+        print("DEFININDO LOJA MAUA 1")
 
         page.locator(
             "text=Retirar no endereço"
@@ -91,17 +96,17 @@ with sync_playwright() as p:
 
         page.wait_for_timeout(3000)
 
-        page.locator(
-            "input"
-        ).nth(1).fill("Mauá")
+        inputs = page.locator("input")
 
-        page.wait_for_timeout(3000)
+        inputs.nth(1).fill("Mauá")
+
+        page.wait_for_timeout(4000)
 
         page.locator(
             "text=Spani Mauá 1"
         ).click()
 
-        page.wait_for_timeout(5000)
+        page.wait_for_timeout(8000)
 
         print("LOJA DEFINIDA")
 
@@ -116,13 +121,13 @@ with sync_playwright() as p:
     # BUSCA
     # =====================================
 
-    busca = page.locator("input")
+    busca = page.locator("input").first
 
-    busca.first.fill("a")
+    busca.fill("a")
 
     page.keyboard.press("Enter")
 
-    page.wait_for_timeout(8000)
+    page.wait_for_timeout(10000)
 
     # =====================================
     # SCROLL
@@ -134,10 +139,10 @@ with sync_playwright() as p:
 
         print(f"SCROLL {i+1}")
 
-        page.wait_for_timeout(2500)
+        page.wait_for_timeout(3000)
 
     # =====================================
-    # PEGAR LINKS
+    # LINKS
     # =====================================
 
     produtos = page.locator("a")
@@ -186,7 +191,7 @@ with sync_playwright() as p:
     links = links[:20]
 
     # =====================================
-    # PRODUTOS
+    # LOOP PRODUTOS
     # =====================================
 
     for i, link in enumerate(links):
@@ -200,86 +205,35 @@ with sync_playwright() as p:
                 timeout=120000
             )
 
-            page.wait_for_timeout(6000)
-
-            texto = (
-                page.locator("body")
-                .inner_text()
+            # ESPERA H1 REAL
+            page.wait_for_selector(
+                "h1",
+                timeout=15000
             )
+
+            page.wait_for_timeout(3000)
 
             # =================================
             # PRODUTO
             # =================================
 
-            produto = "SEM DESCRICAO"
+            produto = ""
 
             try:
 
-                # PEGA PRIMEIRO H1 VALIDO
-                h1s = page.locator("h1")
-
-                if h1s.count() > 0:
-
-                    for x in range(h1s.count()):
-
-                        valor = (
-                            h1s.nth(x)
-                            .inner_text()
-                            .strip()
-                            .upper()
-                        )
-
-                        if (
-                            valor != ""
-                            and "RETIRAR NA LOJA" not in valor
-                            and "SUPERMERCADOS ONLINE" not in valor
-                            and len(valor) > 5
-                        ):
-
-                            produto = valor
-
-                            break
-
-                # FALLBACK
-                if produto == "SEM DESCRICAO":
-
-                    linhas = texto.split("\n")
-
-                    for linha in linhas:
-
-                        linha = linha.strip().upper()
-
-                        if (
-
-                            len(linha) > 15
-
-                            and "RETIRAR NA LOJA" not in linha
-
-                            and "ADICIONAR AO CARRINHO" not in linha
-
-                            and "SUPERMERCADOS ONLINE" not in linha
-
-                            and "COMPARE" not in linha
-
-                            and "QUEM SOMOS" not in linha
-
-                            and "TRABALHE CONOSCO" not in linha
-
-                            and "PORTAL DO COLABORADOR" not in linha
-
-                            and "R$" not in linha
-
-                        ):
-
-                            produto = linha
-
-                            break
+                produto = (
+                    page.locator("h1")
+                    .first
+                    .inner_text()
+                    .strip()
+                    .upper()
+                )
 
                 produto = re.sub(
                     r'\s+',
                     ' ',
                     produto
-                ).strip()
+                )
 
             except Exception as e:
 
@@ -335,10 +289,13 @@ with sync_playwright() as p:
 
             try:
 
+                texto = (
+                    page.locator("body")
+                    .inner_text()
+                )
+
                 precos = re.findall(
-
                     r'R\$\s?\d+,\d+',
-
                     texto
                 )
 
@@ -362,7 +319,7 @@ with sync_playwright() as p:
                 )
 
             # =================================
-            # QUANTIDADE
+            # QTD ATACADO
             # =================================
 
             try:
@@ -390,7 +347,7 @@ with sync_playwright() as p:
                 )
 
             # =================================
-            # VALIDAR ATACADO
+            # VALIDAR PREÇO
             # =================================
 
             try:
@@ -497,6 +454,7 @@ font_header = Font(
 for cell in ws[1]:
 
     cell.fill = fill
+
     cell.font = font_header
 
     cell.alignment = Alignment(
