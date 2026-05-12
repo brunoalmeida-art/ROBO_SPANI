@@ -22,7 +22,6 @@ ARQUIVO = "SPANI.xlsx"
 # =========================================
 
 EMAIL_USER = os.getenv("EMAIL_USER")
-
 EMAIL_PASS = os.getenv("EMAIL_PASS")
 
 DESTINATARIO = "pricing@roldao.com.br"
@@ -68,7 +67,7 @@ with sync_playwright() as p:
     page = context.new_page()
 
     # =====================================
-    # SITE
+    # ABRIR SITE
     # =====================================
 
     page.goto(
@@ -209,87 +208,102 @@ with sync_playwright() as p:
             )
 
             # =================================
-# PRODUTO
-# =================================
+            # PRODUTO
+            # =================================
 
-produto = ""
+            produto = ""
 
-try:
+            try:
 
-    seletores_produto = [
+                seletores_produto = [
 
-        "h1",
+                    "h1",
 
-        ".product-title",
+                    ".product-title",
 
-        ".product-name",
+                    ".product-name",
 
-        ".titulo-produto",
+                    ".titulo-produto",
 
-        ".vip-product-title",
+                    ".vip-product-title",
 
-        "div h1",
+                    "div h1",
 
-    ]
+                ]
 
-    for seletor in seletores_produto:
+                for seletor in seletores_produto:
 
-        try:
+                    try:
 
-            elemento = page.locator(seletor)
+                        elemento = page.locator(seletor)
 
-            if elemento.count() > 0:
+                        if elemento.count() > 0:
 
-                texto_produto = (
-                    elemento.first
-                    .inner_text()
-                    .strip()
-                    .upper()
+                            texto_produto = (
+                                elemento.first
+                                .inner_text()
+                                .strip()
+                                .upper()
+                            )
+
+                            if (
+                                texto_produto != ""
+                                and "SUPERMERCADOS ONLINE" not in texto_produto
+                            ):
+
+                                produto = texto_produto
+
+                                break
+
+                    except:
+
+                        pass
+
+                # FALLBACK FINAL
+                if produto == "":
+
+                    try:
+
+                        linhas = (
+                            page.locator("body")
+                            .inner_text()
+                            .split("\n")
+                        )
+
+                        for linha in linhas:
+
+                            linha = linha.strip().upper()
+
+                            if (
+                                len(linha) > 10
+                                and "SUPERMERCADOS ONLINE" not in linha
+                                and "ADICIONAR AO CARRINHO" not in linha
+                                and "COMPARE" not in linha
+                                and "R$" not in linha
+                            ):
+
+                                produto = linha
+
+                                break
+
+                    except:
+
+                        produto = "SEM DESCRICAO"
+
+                # LIMPEZA
+                produto = re.sub(
+                    r'\s+',
+                    ' ',
+                    produto
                 )
 
-                if (
-                    texto_produto != ""
-                    and "SUPERMERCADOS ONLINE" not in texto_produto
-                ):
+            except Exception as e:
 
-                    produto = texto_produto
+                print(
+                    "ERRO PRODUTO:",
+                    e
+                )
 
-                    break
-
-        except:
-
-            pass
-
-    # FALLBACK FINAL
-    if produto == "":
-
-        try:
-
-            produto = (
-                page.locator("body")
-                .inner_text()
-                .split("\n")[5]
-                .strip()
-                .upper()
-            )
-
-        except:
-
-            produto = "SEM DESCRICAO"
-
-    # LIMPEZA
-    produto = re.sub(
-        r'\s+',
-        ' ',
-        produto
-    )
-
-except Exception as e:
-
-    print(
-        "ERRO PRODUTO:",
-        e
-    )
             # =================================
             # SETOR
             # =================================
@@ -466,8 +480,6 @@ df = df.sort_values(
     by=["SETOR", "PRODUTO"]
 )
 
-print(df.head())
-
 # =========================================
 # EXCEL
 # =========================================
@@ -536,15 +548,10 @@ for row in range(2, ws.max_row + 1):
 larguras = {
 
     "A": 35,
-
     "B": 70,
-
     "C": 12,
-
     "D": 12,
-
     "E": 15,
-
     "F": 12
 }
 
