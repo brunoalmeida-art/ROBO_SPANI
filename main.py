@@ -28,6 +28,8 @@ EMAIL_PASS = os.getenv("EMAIL_PASS")
 
 DESTINATARIO = "pricing@roldao.com.br"
 
+EMAIL_ALERTA = "bruno.almeida@roldao.com.br"
+
 # =========================
 # SESSION
 # =========================
@@ -121,12 +123,68 @@ produtos = js.get("data", {}).get("produtos", [])
 print("TOTAL PRODUTOS API:", len(produtos))
 
 # =========================
-# VALIDAR TOKEN
+# TOKEN EXPIRADO
 # =========================
 
 if not produtos:
 
     print("SEM DADOS - TOKEN POSSIVELMENTE EXPIRADO")
+
+    try:
+
+        if EMAIL_USER and EMAIL_PASS:
+
+            msg = EmailMessage()
+
+            msg["Subject"] = (
+                "ROBO SPANI - TOKEN EXPIRADO"
+            )
+
+            msg["From"] = EMAIL_USER
+
+            msg["To"] = EMAIL_ALERTA
+
+            msg.set_content(f"""
+
+O robô do Spani identificou falha de autenticação.
+
+STATUS API: {r.status_code}
+
+ERRO:
+
+{json.dumps(js, indent=2, ensure_ascii=False)}
+
+O token provavelmente expirou e precisa ser renovado.
+
+Data:
+{HOJE}
+
+Att,
+Robô Spani
+""")
+
+            with smtplib.SMTP_SSL(
+                "smtp.gmail.com",
+                465
+            ) as smtp:
+
+                smtp.login(
+                    EMAIL_USER,
+                    EMAIL_PASS
+                )
+
+                smtp.send_message(msg)
+
+            print(
+                "EMAIL DE TOKEN EXPIRADO ENVIADO"
+            )
+
+    except Exception as e:
+
+        print(
+            "ERRO EMAIL TOKEN:",
+            e
+        )
 
     sys.exit()
 
@@ -469,7 +527,7 @@ wb.save(
 print("🔥 FINALIZADO:", ARQUIVO_FINAL)
 
 # =========================
-# EMAIL
+# EMAIL RELATÓRIO
 # =========================
 
 def enviar_email(arquivo):
