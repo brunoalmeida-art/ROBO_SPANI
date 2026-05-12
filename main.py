@@ -130,7 +130,7 @@ with sync_playwright() as p:
     links = links[:20]
 
     # =====================================
-    # ABRIR PRODUTOS
+    # PRODUTOS
     # =====================================
 
     for i, link in enumerate(links):
@@ -144,7 +144,18 @@ with sync_playwright() as p:
                 timeout=120000
             )
 
-            page.wait_for_timeout(4000)
+            page.wait_for_timeout(5000)
+
+            # =================================
+            # HTML
+            # =================================
+
+            html = page.content()
+
+            texto = (
+                page.locator("body")
+                .inner_text()
+            )
 
             # =================================
             # PRODUTO
@@ -154,19 +165,27 @@ with sync_playwright() as p:
 
             try:
 
-                h1 = page.locator("h1")
+                titulo = page.title()
 
-                if h1.count() > 0:
-
-                    produto = (
-                        h1.first
-                        .inner_text()
-                        .strip()
+                produto = (
+                    titulo
+                    .replace(
+                        " | Spani Atacadista",
+                        ""
                     )
+                    .replace(
+                        "Supermercados Online – Loja Virtual",
+                        ""
+                    )
+                    .strip()
+                )
 
             except Exception as e:
 
-                print("ERRO PRODUTO:", e)
+                print(
+                    "ERRO PRODUTO:",
+                    e
+                )
 
             # =================================
             # SETOR
@@ -198,22 +217,14 @@ with sync_playwright() as p:
 
             except Exception as e:
 
-                print("ERRO SETOR:", e)
+                print(
+                    "ERRO SETOR:",
+                    e
+                )
 
             # =================================
             # PREÇOS
             # =================================
-
-            html = page.content()
-
-            precos = re.findall(
-                r'R\$\s?\d+,\d+',
-                html
-            )
-
-            precos = list(
-                dict.fromkeys(precos)
-            )
 
             varejo = ""
 
@@ -221,38 +232,59 @@ with sync_playwright() as p:
 
             qtd_atacado = ""
 
-            if len(precos) >= 1:
+            try:
 
-                varejo = precos[0]
+                precos = re.findall(
+                    r'R\$\s?\d+,\d+',
+                    texto
+                )
 
-            if len(precos) >= 2:
+                precos = list(
+                    dict.fromkeys(precos)
+                )
 
-                atacado = precos[1]
+                if len(precos) >= 1:
+
+                    varejo = precos[0]
+
+                if len(precos) >= 2:
+
+                    atacado = precos[1]
+
+            except Exception as e:
+
+                print(
+                    "ERRO PRECO:",
+                    e
+                )
 
             # =================================
-            # QUANTIDADE ATACADO
+            # QTD ATACADO
             # =================================
 
             try:
 
-                texto_pagina = (
-                    page.locator("body")
-                    .inner_text()
-                )
+                qtd_match = re.search(
 
-                qtd = re.search(
-                    r'(\d+)\s*ª partir da',
-                    texto_pagina,
+                    r'(\d+).{0,20}unidade',
+
+                    texto,
+
                     re.IGNORECASE
                 )
 
-                if qtd:
+                if qtd_match:
 
-                    qtd_atacado = qtd.group(1)
+                    qtd_atacado = (
+                        qtd_match.group(1)
+                    )
 
-            except:
+            except Exception as e:
 
-                pass
+                print(
+                    "ERRO QTD:",
+                    e
+                )
 
             # =================================
             # SALVAR
@@ -273,11 +305,17 @@ with sync_playwright() as p:
                 "LINK": link
             })
 
-            print("OK:", produto)
+            print(
+                "OK:",
+                produto
+            )
 
         except Exception as e:
 
-            print("ERRO:", e)
+            print(
+                "ERRO:",
+                e
+            )
 
     browser.close()
 
@@ -288,6 +326,14 @@ with sync_playwright() as p:
 df = pd.DataFrame(dados)
 
 df = df.drop_duplicates()
+
+# =========================================
+# ORDENAR
+# =========================================
+
+df = df.sort_values(
+    by=["SETOR", "PRODUTO"]
+)
 
 print(df.head())
 
@@ -304,7 +350,9 @@ df.to_excel(
 # FORMATAR
 # =========================================
 
-wb = load_workbook(ARQUIVO)
+wb = load_workbook(
+    ARQUIVO
+)
 
 ws = wb.active
 
@@ -356,7 +404,7 @@ for row in range(2, ws.max_row + 1):
 
 larguras = {
 
-    "A": 25,
+    "A": 30,
 
     "B": 70,
 
@@ -441,4 +489,7 @@ Competitividade – Spani
 
 except Exception as e:
 
-    print("ERRO EMAIL:", e)
+    print(
+        "ERRO EMAIL:",
+        e
+    )
