@@ -653,7 +653,7 @@ try:
 
     msg.set_content("""
 
-Boa Tarde,
+Bom Dia,
 
 Segue em anexo o relatório atualizado de preços coletados no site do Spani Atacadista.
 
